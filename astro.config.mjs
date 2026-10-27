@@ -1,6 +1,7 @@
 // @ts-check
 import { defineConfig, envField } from 'astro/config';
 import node from '@astrojs/node';
+import vercel from '@astrojs/vercel';
 import svelte from '@astrojs/svelte';
 import AstroPWA from '@vite-pwa/astro';
 import { pwaOptions } from './pwa.config.mjs';
@@ -8,9 +9,8 @@ import { pwaOptions } from './pwa.config.mjs';
 // https://astro.build/config
 export default defineConfig({
   output: 'server',
-  adapter: node({
-    mode: 'standalone'
-  }),
+  // Vercel sets VERCEL=1 during its builds; everywhere else (dev, e2e, self-hosting) use Node.
+  adapter: process.env.VERCEL ? vercel() : node({ mode: 'standalone' }),
   env: {
     schema: {
       // Read from the server environment at runtime, never inlined into the build output.
