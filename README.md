@@ -1,43 +1,59 @@
-# Astro Starter Kit: Minimal
+# Movie Finder (Astro + Svelte)
 
-```sh
-npm create astro@latest -- --template minimal
+Проєкт пошуку фільмів, мультфільмів і TV-шоу на базі Astro + Svelte, без UI бібліотек.
+
+## Що реалізовано
+
+- Каталог із фільтрами: категорія, жанр, рейтинг, рік, сортування, пошук за назвою, країни, вікове обмеження.
+- Важлива вимога: до вибору категорії запитів немає.
+- Картка елемента: постер, назва, рік, країна, головні актори, короткий опис, кнопка деталей.
+- Сторінка деталей: розширена інформація, актори з фото, рейтинг, трейлер, додавання в улюблені.
+- Сторінка улюблених: категорії користувача, створення категорій, видалення, зберігання в `localStorage`.
+
+## Сторінки
+
+- `/` — пошук і список контенту
+- `/details/[mediaType]/[id]` — деталі
+- `/favorites` — улюблені
+
+## Налаштування
+
+1. Створіть `.env` у корені проєкту.
+2. Додайте ключ TMDB:
+
+```env
+TMDB_API_KEY=your_tmdb_key
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+Отримати ключ можна в акаунті [TMDB](https://www.themoviedb.org/).
 
-## 🚀 Project Structure
+## PWA
 
-Inside of your Astro project, you'll see the following folders and files:
+- Manifest + service worker (`@vite-pwa/astro`, конфіг у `pwa.config.mjs`).
+- Сторінки й `/api/*` кешуються за стратегією network-first, постери TMDB — cache-first.
+- Без мережі показується пререндерена сторінка `/offline`; улюблені працюють офлайн (`localStorage`).
+- Іконки: `public/icons/icon.svg` → PNG через `npm run icons`.
+- Встановлення на телефон потребує HTTPS (сервер Node, `output: 'server'`).
 
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
+## Команди
+
+```bash
+npm install
+npm run dev
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+- `npm run test` — unit-тести (Vitest).
+- `npm run test:e2e` — e2e на мобільному профілі (Playwright). API мокається, ключ TMDB не потрібен.
+- `npm run typecheck` — `astro check`.
+- `npm run ci` — format + typecheck + unit + e2e + build.
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+Для production-збірки:
 
-Any static assets, like images, can be placed in the `public/` directory.
+```bash
+npm run build
+node dist/server/entry.mjs
+```
 
-## 🧞 Commands
+## Документація
 
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+- [docs/ROADMAP.md](docs/ROADMAP.md) — контекст змін, чекліст до релізу, ідеї й технічний борг.

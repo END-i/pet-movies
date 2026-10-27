@@ -1,0 +1,73 @@
+---
+import '../styles/global.css';
+import AppControls from '../components/AppControls.svelte';
+import BottomNav from '../components/BottomNav.svelte';
+
+interface Props {
+  title: string;
+  active?: 'search' | 'favorites' | null;
+}
+
+const { title, active = null } = Astro.props;
+---
+
+<!doctype html>
+<html lang="uk" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0f1a" />
+    <meta name="description" content="Пошук фільмів, мультфільмів і серіалів" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="PET Movies" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="preconnect" href="https://image.tmdb.org" crossorigin />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <script is:inline>
+      // Apply the saved theme before first paint to avoid a dark/light flash.
+      (function () {
+        try {
+          var theme = localStorage.getItem('pet-theme-mode') === 'light' ? 'light' : 'dark';
+          document.documentElement.setAttribute('data-theme', theme);
+          var locale = localStorage.getItem('pet-locale-mode') === 'en' ? 'en' : 'uk';
+          document.documentElement.setAttribute('lang', locale);
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <script is:inline>
+      (function () {
+        if (!('serviceWorker' in navigator)) return;
+        var isLocalDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+        if (isLocalDev) {
+          // No service worker in dev; drop stale ones left from preview builds.
+          navigator.serviceWorker.getRegistrations().then(function (registrations) {
+            registrations.forEach(function (item) {
+              item.unregister();
+            });
+          });
+          return;
+        }
+        window.addEventListener('load', function () {
+          var hadController = Boolean(navigator.serviceWorker.controller);
+          navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function () {});
+          var reloaded = false;
+          navigator.serviceWorker.addEventListener('controllerchange', function () {
+            if (!hadController || reloaded) return;
+            reloaded = true;
+            location.reload();
+          });
+        });
+      })();
+    </script>
+    <AppControls client:load />
+    <slot />
+    <BottomNav active={active} client:load />
+  </body>
+</html>

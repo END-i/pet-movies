@@ -1,0 +1,36 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+// Prerendered so the service worker can precache it as the offline fallback.
+export const prerender = true;
+---
+
+<Layout title="Офлайн — PET Movies">
+  <main class="page offline">
+    <h1 class="page-title">Немає з'єднання</h1>
+    <p class="hint">
+      Ця сторінка ще не збережена на пристрої. Улюблені та вже відкриті сторінки доступні офлайн.
+    </p>
+    <div class="offline-actions">
+      <a class="btn btn-primary" href="/favorites">
+        Улюблені
+      </a>
+      <button class="btn" type="button" onclick="location.reload()">
+        Спробувати знову
+      </button>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .offline {
+    text-align: center;
+    padding-top: 15vh;
+  }
+
+  .offline-actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+  }
+</style>

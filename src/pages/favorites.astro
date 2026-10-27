@@ -1,0 +1,8 @@
+---
+import Layout from '../layouts/Layout.astro';
+import FavoritesPage from '../components/FavoritesPage.svelte';
+---
+
+<Layout title="Улюблені — PET Movies" active="favorites">
+  <FavoritesPage client:load />
+</Layout>

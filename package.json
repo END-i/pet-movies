@@ -1,14 +1,43 @@
 {
-  "name": "pet",
+  "name": "pet-movies",
   "type": "module",
   "version": "0.0.1",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "typecheck": "astro check",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "icons": "node scripts/generate-icons.mjs",
+    "ci": "npm run format:check && npm run typecheck && npm run test && npm run test:e2e && npm run build"
   },
   "dependencies": {
-    "astro": "^5.17.1"
+    "@astrojs/node": "^9.5.4",
+    "@astrojs/svelte": "^7.2.5",
+    "astro": "^5.17.1",
+    "svelte": "^5.53.0",
+    "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.12",
+    "@playwright/test": "^1.58.2",
+    "@types/node": "^22.20.5",
+    "@typescript-eslint/eslint-plugin": "^8.56.0",
+    "@typescript-eslint/parser": "^8.56.0",
+    "@vite-pwa/astro": "^1.2.0",
+    "eslint": "^10.0.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-svelte": "^3.15.0",
+    "jsdom": "^29.1.1",
+    "prettier": "^3.8.1",
+    "prettier-plugin-astro": "^1.1.2",
+    "prettier-plugin-svelte": "^3.5.0",
+    "svelte-eslint-parser": "^1.4.1",
+    "vitest": "^5.0.5"
   }
 }

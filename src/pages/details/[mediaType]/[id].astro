@@ -1,0 +1,11 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import MovieDetailsPage from '../../../components/MovieDetailsPage.svelte';
+
+const mediaType = Astro.params.mediaType === 'tv' ? 'tv' : 'movie';
+const id = Number(Astro.params.id ?? '0');
+---
+
+<Layout title="Деталі — PET Movies">
+  <MovieDetailsPage mediaType={mediaType} id={id} client:load />
+</Layout>

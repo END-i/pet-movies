@@ -1,0 +1,269 @@
+<script lang="ts">
+  import { onMount } from 'svelte';
+  import { get } from 'svelte/store';
+  import { localeMode } from '../lib/preferences';
+  import { tr } from '../lib/i18n';
+  import type { ActorDetails } from '../lib/types';
+
+  export let id: number;
+
+  // Biographies can be very long; show a preview until expanded.
+  const BIO_PREVIEW_CHARS = 420;
+
+  let actor: ActorDetails | null = null;
+  let loading = true;
+  let error = '';
+  let bioExpanded = false;
+  let loadedLocale = '';
+
+  $: locale = $localeMode;
+  $: bio = actor?.biography ?? '';
+  $: bioIsLong = bio.length > BIO_PREVIEW_CHARS;
+  $: bioText = bioExpanded || !bioIsLong ? bio : `${bio.slice(0, BIO_PREVIEW_CHARS).trimEnd()}…`;
+
+  async function loadActor() {
+    loading = true;
+    error = '';
+    loadedLocale = get(localeMode);
+
+    try {
+      const response = await fetch(`/api/person/${id}.json?locale=${loadedLocale}`);
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(
+          payload?.error ??
+            tr(get(localeMode), 'Не вдалося завантажити актора', 'Failed to load person')
+        );
+      }
+
+      actor = (await response.json()) as ActorDetails;
+    } catch (err) {
+      error = !navigator.onLine
+        ? tr(get(localeMode), 'Немає з’єднання з інтернетом', 'You are offline')
+        : err instanceof Error
+          ? err.message
+          : tr(get(localeMode), 'Невідома помилка', 'Unknown error');
+    } finally {
+      loading = false;
+    }
+  }
+
+  function goBack() {
+    if (history.length > 1 && document.referrer.startsWith(location.origin)) {
+      history.back();
+    } else {
+      location.href = '/';
+    }
+  }
+
+  onMount(() => {
+    void loadActor();
+  });
+
+  $: if (loadedLocale && $localeMode !== loadedLocale && !loading) {
+    void loadActor();
+  }
+</script>
+
+<main class="page">
+  <button type="button" class="btn back" on:click={goBack}>← {tr(locale, 'Назад', 'Back')}</button>
+
+  {#if loading}
+    <div class="skeleton" style="height: 220px"></div>
+  {:else if error || !actor}
+    <div class="panel">
+      <p class="error">{error || tr(locale, 'Актора не знайдено', 'Person not found')}</p>
+      <button type="button" class="btn" on:click={loadActor}
+        >{tr(locale, 'Спробувати знову', 'Try again')}</button
+      >
+    </div>
+  {:else}
+    <section class="profile">
+      <img src={actor.photo ?? '/fallback-person.svg'} alt={actor.name} width="300" height="400" />
+      <div class="info">
+        <h1 class="page-title">{actor.name}</h1>
+        {#if actor.originalName && actor.originalName !== actor.name}
+          <p class="muted original">{actor.originalName}</p>
+        {/if}
+        <dl>
+          {#if actor.birthday && actor.birthday !== 'Невідомо'}
+            <dt>{tr(locale, 'Народження', 'Born')}</dt>
+            <dd>
+              {actor.birthday}{#if actor.age !== null}&nbsp;({actor.age}
+                {tr(locale, 'р.', 'y.o.')}){/if}
+            </dd>
+          {/if}
+          {#if actor.placeOfBirth && actor.placeOfBirth !== 'Невідомо'}
+            <dt>{tr(locale, 'Місце', 'Place')}</dt>
+            <dd>{actor.placeOfBirth}</dd>
+          {/if}
+          {#if actor.knownForDepartment && actor.knownForDepartment !== 'Невідомо'}
+            <dt>{tr(locale, 'Відомий за', 'Known for')}</dt>
+            <dd>{actor.knownForDepartment}</dd>
+          {/if}
+        </dl>
+        {#if actor.imdbId}
+          <a href={`https://www.imdb.com/name/${actor.imdbId}`} target="_blank" rel="noreferrer"
+            >IMDb ↗</a
+          >
+        {/if}
+      </div>
+    </section>
+
+    {#if bio}
+      <section>
+        <h2 class="section-title">{tr(locale, 'Біографія', 'Biography')}</h2>
+        <p class="bio">{bioText}</p>
+        {#if bioIsLong}
+          <button type="button" class="link-btn" on:click={() => (bioExpanded = !bioExpanded)}>
+            {bioExpanded
+              ? tr(locale, 'Згорнути', 'Show less')
+              : tr(locale, 'Читати далі', 'Read more')}
+          </button>
+        {/if}
+      </section>
+    {/if}
+
+    <section>
+      <h2 class="section-title">{tr(locale, 'Фільмографія', 'Filmography')}</h2>
+      {#if actor.credits.length === 0}
+        <p class="hint">{tr(locale, 'Ролі поки відсутні.', 'No credits yet.')}</p>
+      {:else}
+        <div class="credits">
+          {#each actor.credits as credit (`${credit.mediaType}-${credit.id}-${credit.character}`)}
+            <a class="credit" href={`/details/${credit.mediaType}/${credit.id}`}>
+              <img
+                src={credit.poster ?? '/fallback-poster.svg'}
+                alt=""
+                loading="lazy"
+                width="185"
+                height="278"
+              />
+              <strong>{credit.title}</strong>
+              <small>
+                {credit.year || '—'}{#if credit.voteAverage}&nbsp;· <span class="rating"
+                    >★ {credit.voteAverage.toFixed(1)}</span
+                  >{/if}
+              </small>
+              {#if credit.character && credit.character !== '—'}
+                <small class="role">{credit.character}</small>
+              {/if}
+            </a>
+          {/each}
+        </div>
+      {/if}
+    </section>
+  {/if}
+</main>
+
+<style>
+  .back {
+    justify-self: start;
+  }
+
+  .profile {
+    display: grid;
+    grid-template-columns: 120px minmax(0, 1fr);
+    gap: 14px;
+    align-items: start;
+  }
+
+  .profile img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 3 / 4;
+    object-fit: cover;
+    border-radius: 14px;
+    background: var(--surface-2);
+  }
+
+  .info .page-title {
+    margin: 0;
+  }
+
+  .original {
+    margin: 4px 0 0;
+    font-style: italic;
+  }
+
+  dl {
+    margin: 10px 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 4px 10px;
+    font-size: 0.9rem;
+  }
+
+  dt {
+    color: var(--muted);
+  }
+
+  dd {
+    margin: 0;
+  }
+
+  .bio {
+    margin: 0;
+    white-space: pre-line;
+    line-height: 1.55;
+  }
+
+  .link-btn {
+    margin-top: 6px;
+    padding: 6px 0;
+    border: 0;
+    background: none;
+    color: var(--accent);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .credits {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+    gap: 12px 10px;
+  }
+
+  .credit {
+    display: grid;
+    gap: 3px;
+    align-content: start;
+    color: var(--text);
+  }
+
+  .credit img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
+    border-radius: 10px;
+    background: var(--surface-2);
+  }
+
+  .credit strong {
+    font-size: 0.84rem;
+    line-height: 1.25;
+  }
+
+  .credit small {
+    color: var(--muted);
+    font-size: 0.76rem;
+  }
+
+  .role {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  @media (min-width: 720px) {
+    .profile {
+      grid-template-columns: 240px minmax(0, 1fr);
+      gap: 24px;
+    }
+
+    .credits {
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    }
+  }
+</style>

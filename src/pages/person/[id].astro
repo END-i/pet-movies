@@ -1,0 +1,10 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import ActorPage from '../../components/ActorPage.svelte';
+
+const id = Number(Astro.params.id ?? '0');
+---
+
+<Layout title="Актор — PET Movies">
+  <ActorPage id={id} client:load />
+</Layout>
