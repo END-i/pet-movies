@@ -17,7 +17,7 @@
 - Сторінки: `/` (каталог), `/details/[mediaType]/[id]`, `/person/[id]`, `/favorites`, `/offline` (пререндерена).
 - Улюблені — `localStorage['movie-finder-favorites-v1']`, лише на цьому пристрої.
 - Мова (uk/en) і тема (dark/light) — `localStorage['pet-locale-mode']`, `['pet-theme-mode']`.
-- Перевірки: `npm run ci` (format, typecheck, 26 unit, 10 e2e з мокнутим API, build). **CI на GitHub і git remote ще немає.**
+- Перевірки: `npm run ci` (format, typecheck, 26 unit, 10 e2e з мокнутим API, build). CI — GitHub Actions на кожен push; `pre-push` хук запускає `npm run ci` локально.
 
 ### Як працює PWA
 
@@ -63,8 +63,8 @@
 
 ### 3.1 Обов’язково перед релізом
 
-- [ ] Створити репозиторій на GitHub, `git remote add origin …`, закомітити й запушити.
-- [ ] Додати CI (GitHub Actions: `npm ci`, `npx playwright install --with-deps chromium`, `npm run ci`) і, за бажанням, `pre-push` хук, як у cards.
+- [x] Створити репозиторій на GitHub, `git remote add origin …`, закомітити й запушити. — `END-i/pet-movies`.
+- [x] Додати CI (GitHub Actions: `npm ci`, `npx playwright install --with-deps chromium`, `npm run ci`) і `pre-push` хук, як у cards. — `.github/workflows/ci.yml`, `.githooks/pre-push` (вмикається через `npm install` → `prepare`).
 - [ ] **Хостинг з Node і HTTPS** (без HTTPS PWA не встановиться): Render / Railway / Fly.io / VPS. Або змінити адаптер (Vercel, Netlify, Cloudflare).
 - [ ] **Ключ TMDB на сервері.** Перевірити, чи Astro вбудовує `TMDB_API_KEY` у збірку під час `build`, чи читає зі змінних середовища під час роботи. Надійніше перейти на `astro:env` (`envField.string({ context: 'server', access: 'secret' })`), щоб ключ задавався на хостингу й не потрапляв в артефакт збірки.
 - [ ] **Атрибуція TMDB** — вимога умов використання API: логотип TMDB і текст «This product uses the TMDB API but is not endorsed or certified by TMDB» (наприклад, сторінка «Про застосунок» або футер).

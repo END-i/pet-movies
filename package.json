@@ -14,7 +14,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "icons": "node scripts/generate-icons.mjs",
-    "ci": "npm run format:check && npm run typecheck && npm run test && npm run test:e2e && npm run build"
+    "ci": "npm run format:check && npm run typecheck && npm run test && npm run test:e2e && npm run build",
+    "prepare": "node scripts/setup-hooks.mjs"
   },
   "dependencies": {
     "@astrojs/node": "^9.5.4",
@@ -39,5 +40,8 @@
     "prettier-plugin-svelte": "^3.5.0",
     "svelte-eslint-parser": "^1.4.1",
     "vitest": "^5.0.5"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
