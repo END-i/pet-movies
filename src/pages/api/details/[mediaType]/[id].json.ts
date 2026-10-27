@@ -3,6 +3,12 @@ import { makeImageUrl, tmdbRequest, TMDB_DEBUG, TMDB_TTL } from '../../../../lib
 import type { MediaType, MovieDetails } from '../../../../lib/types';
 import { pickAgeRating } from '../../../../lib/ageRating';
 import { tmdbLanguage } from '../../../../lib/i18n';
+import {
+  isoDate,
+  movieRelease,
+  summarizeReleaseDates,
+  tvRelease
+} from '../../../../lib/releaseStatus';
 
 interface DetailsResponse {
   id: number;
@@ -35,7 +41,7 @@ interface DetailsResponse {
   release_dates?: {
     results?: Array<{
       iso_3166_1: string;
-      release_dates?: Array<{ certification?: string }>;
+      release_dates?: Array<{ certification?: string; type?: number; release_date?: string }>;
     }>;
   };
   content_ratings?: {
@@ -140,7 +146,15 @@ export const GET: APIRoute = async ({ params, url }) => {
         character: actor.character,
         photo: makeImageUrl(actor.profile_path, 'w185')
       })),
-      trailerKey: trailer?.key ?? null
+      trailerKey: trailer?.key ?? null,
+      release:
+        mediaType === 'movie'
+          ? movieRelease(
+              summarizeReleaseDates(data.release_dates),
+              data.release_date,
+              isoDate(new Date())
+            )
+          : tvRelease(data.first_air_date, isoDate(new Date()))
     };
 
     if (TMDB_DEBUG) {

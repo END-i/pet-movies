@@ -14,6 +14,7 @@
   import { tr } from '../lib/i18n';
   import { POSTER_SIZES, posterSrcset } from '../lib/images';
   import type { MovieDetails } from '../lib/types';
+  import ReleaseBadge from './ReleaseBadge.svelte';
 
   const CLIENT_DEBUG = PUBLIC_DEBUG_LOGS;
 
@@ -200,6 +201,9 @@
           {#if details.countries.length}
             <p class="muted small">{details.countries.join(', ')}</p>
           {/if}
+          {#if details.release}
+            <p class="release-row"><ReleaseBadge release={details.release} {locale} long /></p>
+          {/if}
         </div>
       </div>
     </section>
@@ -214,7 +218,7 @@
       {/if}
 
       {#if !details.hasUkrainianTranslation && locale === 'uk'}
-        <span class="badge">UA переклад відсутній</span>
+        <span class="badge">Немає українського перекладу</span>
       {/if}
 
       <p class="overview">
@@ -386,6 +390,10 @@
   .hero-info h1 {
     margin: 0;
     font-size: clamp(1.35rem, 6vw, 2.2rem);
+  }
+
+  .release-row {
+    margin: 8px 0 0;
   }
 
   .original {

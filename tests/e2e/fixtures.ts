@@ -14,7 +14,8 @@ export const catalogItems = [
     genres: ['Бойовик', 'Фантастика'],
     overview: 'Хакер дізнається правду про реальність.',
     voteAverage: 8.2,
-    voteCount: 25000
+    voteCount: 25000,
+    release: { status: 'online' }
   },
   {
     id: 70523,
@@ -29,7 +30,8 @@ export const catalogItems = [
     genres: ['Драма'],
     overview: 'Зникнення дітей у маленькому містечку.',
     voteAverage: 8.4,
-    voteCount: 6000
+    voteCount: 6000,
+    release: { status: 'upcoming', date: '2027-01-10' }
   }
 ];
 
@@ -51,7 +53,8 @@ export const movieDetails = {
   imdbId: 'tt0133093',
   genres: ['Бойовик', 'Фантастика'],
   actors: [{ id: 6384, name: 'Кіану Рівз', character: 'Нео', photo: null }],
-  trailerKey: null
+  trailerKey: null,
+  release: { status: 'cinema', date: '2026-12-01' }
 };
 
 export const person = {

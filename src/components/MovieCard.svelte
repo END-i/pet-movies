@@ -5,6 +5,7 @@
   import { tr } from '../lib/i18n';
   import { POSTER_SIZES, posterSrcset } from '../lib/images';
   import type { CatalogItem } from '../lib/types';
+  import ReleaseBadge from './ReleaseBadge.svelte';
 
   export let item: CatalogItem;
 
@@ -84,8 +85,16 @@
       <p class="overview">{item.overview}</p>
     {/if}
 
-    {#if !item.hasUkrainianTranslation && $localeMode === 'uk'}
-      <span class="badge">UA переклад відсутній</span>
+    {#if item.release || (!item.hasUkrainianTranslation && $localeMode === 'uk')}
+      <p class="tags">
+        <ReleaseBadge release={item.release} locale={$localeMode} />
+        {#if !item.hasUkrainianTranslation && $localeMode === 'uk'}
+          <span class="no-ua" title="Немає українського перекладу">
+            <span aria-hidden="true">UA</span>
+            <span class="visually-hidden">Немає українського перекладу</span>
+          </span>
+        {/if}
+      </p>
     {/if}
   </div>
 
@@ -207,8 +216,24 @@
     margin-top: 2px;
   }
 
-  .badge {
-    margin-top: 4px;
+  .tags {
+    margin: 6px 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .no-ua {
+    padding: 2px 6px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-decoration: line-through;
+    text-decoration-color: var(--danger);
+    text-decoration-thickness: 2px;
   }
 
   .fav {

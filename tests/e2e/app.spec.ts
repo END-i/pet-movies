@@ -15,7 +15,9 @@ test('home shows catalog results on a phone without horizontal scroll', async ({
   await expect(page.getByRole('heading', { name: 'Що подивитися?' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Матриця' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Темрява' })).toBeVisible();
-  await expect(page.getByText('UA переклад відсутній')).toBeVisible();
+  await expect(page.getByTitle('Немає українського перекладу')).toHaveText(/UA/);
+  await expect(page.getByText('Онлайн', { exact: true })).toBeVisible();
+  await expect(page.getByText(/^Анонс · 10 січ/)).toBeVisible();
   await expectNoHorizontalScroll(page);
 });
 
@@ -169,6 +171,7 @@ test('details page shows info, saves to a new category and links to the actor', 
   await expect(page.getByRole('heading', { name: 'Матриця', level: 1 })).toBeVisible();
   await expect(page.getByText('The Matrix')).toBeVisible();
   await expect(page.getByText('16+', { exact: true })).toBeVisible();
+  await expect(page.getByText(/^У кіно · онлайн з 1 груд/)).toBeVisible();
   await expectNoHorizontalScroll(page);
 
   await page.getByRole('textbox', { name: 'Нова категорія' }).fill('Класика');

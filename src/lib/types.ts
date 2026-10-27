@@ -1,3 +1,5 @@
+import type { ReleaseInfo } from './releaseStatus';
+
 export type MediaType = 'movie' | 'tv';
 export type PersonSegment = 'male' | 'female' | 'child' | 'person';
 
@@ -17,6 +19,8 @@ export interface CatalogItem {
   overview: string;
   voteAverage: number;
   voteCount: number;
+  /** Where the title can be watched now; null when unknown. */
+  release?: ReleaseInfo | null;
 }
 
 export interface Actor {
@@ -94,6 +98,7 @@ export interface MovieDetails {
   genres: string[];
   actors: Actor[];
   trailerKey: string | null;
+  release?: ReleaseInfo | null;
 }
 
 export interface FavoriteEntry {

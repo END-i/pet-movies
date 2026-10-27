@@ -12,6 +12,13 @@ import {
 import { tmdbLanguage } from '../../lib/i18n';
 import { usCertificationForFilter } from '../../lib/ageRating';
 import { hiddenGenreIds, isGenreAllowed, parseHiddenGenres } from '../../lib/genres';
+import {
+  isoDate,
+  movieRelease,
+  summarizeReleaseDates,
+  tvRelease,
+  type ReleaseDates
+} from '../../lib/releaseStatus';
 
 interface DiscoverResponse {
   page: number;
@@ -43,6 +50,7 @@ interface EntityDetails {
   credits?: {
     cast?: Array<{ name: string }>;
   };
+  release_dates?: Parameters<typeof summarizeReleaseDates>[0];
   translations?: {
     translations?: Array<{
       iso_639_1: string;
@@ -64,6 +72,7 @@ interface Enrichment {
   actors: string[];
   genres: string[];
   hasUkrainianTranslation: boolean;
+  releaseDates: ReleaseDates;
 }
 
 // Each catalog page needs details for up to 20 titles; they change rarely, so keep them half a day.
@@ -80,7 +89,11 @@ async function loadEnrichment(
   return enrichmentCache.getOrLoad(`${mediaType}:${id}:${language}`, async () => {
     const details = await tmdbRequest<EntityDetails>(
       `/${mediaType}/${id}`,
-      { append_to_response: 'credits,translations', language },
+      {
+        append_to_response:
+          mediaType === 'movie' ? 'credits,translations,release_dates' : 'credits,translations',
+        language
+      },
       { ttlMs: 0 }
     );
     const ukTranslation = (details.translations?.translations ?? []).find(
@@ -103,7 +116,8 @@ async function loadEnrichment(
       genres: (details.genres ?? []).map((genreItem) => genreItem.name),
       hasUkrainianTranslation: Boolean(
         ukTranslation?.data?.title || ukTranslation?.data?.name || ukTranslation?.data?.overview
-      )
+      ),
+      releaseDates: summarizeReleaseDates(details.release_dates)
     };
   });
 }
@@ -189,6 +203,12 @@ async function loadByConfig(args: {
   const discovered = await tmdbRequest<DiscoverResponse>(endpoint, discoverParams);
 
   // `/search` ignores `without_genres`, so hidden genres are also filtered here.
+  const today = isoDate(new Date());
+  const releaseOf = (item: DiscoverResponse['results'][number], dates: ReleaseDates) =>
+    categoryConfig.mediaType === 'movie'
+      ? movieRelease(dates, item.release_date, today)
+      : tvRelease(item.first_air_date, today);
+
   const visible = discovered.results.filter((item) => isGenreAllowed(item.genre_ids, hiddenIds));
 
   const enrichedItems = await Promise.all(
@@ -212,6 +232,7 @@ async function loadByConfig(args: {
           countryCodes: details.countryCodes,
           actors: details.actors,
           genres: details.genres,
+          release: releaseOf(item, details.releaseDates ?? {}),
           overview: localizedOverview || 'Опис поки відсутній.',
           voteAverage: item.vote_average,
           voteCount: item.vote_count
@@ -230,6 +251,7 @@ async function loadByConfig(args: {
           countries: [],
           actors: [],
           genres: [],
+          release: releaseOf(item, {}),
           overview: item.overview || 'Опис поки відсутній.',
           voteAverage: item.vote_average,
           voteCount: item.vote_count
