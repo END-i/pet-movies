@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { PUBLIC_DEBUG_LOGS } from 'astro:env/client';
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
   import {
@@ -13,7 +14,7 @@
   import { tr } from '../lib/i18n';
   import type { MovieDetails } from '../lib/types';
 
-  const CLIENT_DEBUG = import.meta.env.PUBLIC_DEBUG_LOGS === 'true';
+  const CLIENT_DEBUG = PUBLIC_DEBUG_LOGS;
 
   export let mediaType: 'movie' | 'tv';
   export let id: number;

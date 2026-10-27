@@ -51,8 +51,10 @@ npm run dev
 
 ```bash
 npm run build
-node dist/server/entry.mjs
+TMDB_API_KEY=... HOST=0.0.0.0 PORT=4321 node dist/server/entry.mjs
 ```
+
+Ключ TMDB читається зі змінної середовища під час роботи сервера (`astro:env`, secret) і не потрапляє в `dist/`. Локально його бере з `.env`.
 
 ## Документація
 

@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import AppControls from '../components/AppControls.svelte';
 import BottomNav from '../components/BottomNav.svelte';
+import AppFooter from '../components/AppFooter.svelte';
 
 interface Props {
   title: string;
@@ -68,6 +69,7 @@ const { title, active = null } = Astro.props;
     </script>
     <AppControls client:load />
     <slot />
+    <AppFooter client:load />
     <BottomNav active={active} client:load />
   </body>
 </html>

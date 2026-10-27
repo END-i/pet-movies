@@ -1,24 +1,15 @@
+import { TMDB_API_KEY, TMDB_DEBUG as TMDB_DEBUG_ENV } from 'astro:env/server';
+
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
-function isTrue(value: string | undefined): boolean {
-  if (!value) return false;
-  return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase());
-}
-
-const processDebugValue =
-  typeof globalThis !== 'undefined' && 'process' in globalThis
-    ? (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env
-        ?.TMDB_DEBUG
-    : undefined;
-export const TMDB_DEBUG = isTrue(import.meta.env.TMDB_DEBUG) || isTrue(processDebugValue);
+export const TMDB_DEBUG = TMDB_DEBUG_ENV;
 
 function getApiKey(): string {
-  const apiKey = import.meta.env.TMDB_API_KEY || import.meta.env.PUBLIC_TMDB_API_KEY;
-  if (!apiKey) {
-    throw new Error('TMDB_API_KEY відсутній. Додайте його у файл .env.');
+  if (!TMDB_API_KEY) {
+    throw new Error('TMDB_API_KEY відсутній. Задайте змінну середовища на сервері (або в .env).');
   }
 
-  return apiKey;
+  return TMDB_API_KEY;
 }
 
 export async function tmdbRequest<T>(
@@ -51,11 +42,7 @@ export async function tmdbRequest<T>(
   const payload = (await response.json()) as T;
 
   if (TMDB_DEBUG) {
-    console.log('[TMDB][request]', {
-      path,
-      params: requestParams,
-      language
-    });
+    console.log('[TMDB][request]', { path, params: requestParams, language });
     console.log('[TMDB][response]', payload);
   }
 

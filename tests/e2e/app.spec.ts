@@ -164,3 +164,17 @@ test('API error shows a retry button', async ({ page }) => {
   await expect(page.getByText('TMDB недоступний')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Спробувати знову' })).toBeVisible();
 });
+
+test('every page shows the TMDB attribution required by its terms', async ({ page }) => {
+  await mockApi(page);
+  for (const url of ['/', '/favorites', '/details/movie/603']) {
+    await gotoHydrated(page, url);
+    await expect(
+      page.getByText('This product uses the TMDB API but is not endorsed or certified by TMDB.')
+    ).toBeVisible();
+    await expect(page.getByRole('link', { name: 'TMDB' })).toHaveAttribute(
+      'href',
+      'https://www.themoviedb.org/'
+    );
+  }
+});

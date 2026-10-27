@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { PUBLIC_DEBUG_LOGS } from 'astro:env/client';
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
   import MovieCard from './MovieCard.svelte';
@@ -8,7 +9,7 @@
   import { buildPaginationTokens, parsePositiveInteger } from '../lib/pagination';
   import type { CatalogItem } from '../lib/types';
 
-  const CLIENT_DEBUG = import.meta.env.PUBLIC_DEBUG_LOGS === 'true';
+  const CLIENT_DEBUG = PUBLIC_DEBUG_LOGS;
 
   type Category = '' | 'all' | 'movie' | 'cartoon' | 'tv';
 
