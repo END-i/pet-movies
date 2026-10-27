@@ -82,12 +82,19 @@
 
   function removeSelectedCategory() {
     if (!selectedCategory) return;
+    const count = store[selectedCategory]?.length ?? 0;
     const confirmed = window.confirm(
-      tr(
-        locale,
-        `Видалити категорію «${selectedCategory}»?`,
-        `Delete category “${selectedCategory}”?`
-      )
+      count
+        ? tr(
+            locale,
+            `Видалити категорію «${selectedCategory}» разом з ${count} фільмами?`,
+            `Delete category “${selectedCategory}” and its ${count} titles?`
+          )
+        : tr(
+            locale,
+            `Видалити категорію «${selectedCategory}»?`,
+            `Delete category “${selectedCategory}”?`
+          )
     );
     if (!confirmed) return;
     deleteCategory(selectedCategory);
@@ -112,6 +119,24 @@
   <header class="head">
     <h1 class="page-title">{tr(locale, 'Улюблені', 'Favorites')}</h1>
     {#if total}<span class="muted">{total}</span>{/if}
+    {#if selectedCategory}
+      <button
+        type="button"
+        class="btn btn-icon delete-category"
+        on:click={removeSelectedCategory}
+        aria-label={tr(
+          locale,
+          `Видалити категорію «${selectedCategory}»`,
+          `Delete category “${selectedCategory}”`
+        )}
+      >
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+          <path
+            d="M4 7h16M10 11v6M14 11v6M5.5 7l1 12a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2l1-12M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7"
+          />
+        </svg>
+      </button>
+    {/if}
   </header>
 
   <div class="chips" role="group" aria-label={tr(locale, 'Категорії', 'Categories')}>
@@ -144,8 +169,15 @@
       aria-label={tr(locale, 'Нова категорія', 'New category')}
       enterkeyhint="done"
     />
-    <button type="submit" class="btn btn-primary" disabled={!newCategory.trim()}>
-      {tr(locale, 'Створити', 'Create')}
+    <button
+      type="submit"
+      class="btn btn-primary btn-icon add-category"
+      disabled={!newCategory.trim()}
+      aria-label={tr(locale, 'Створити категорію', 'Create category')}
+    >
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+        <path d="M12 5v14M5 12h14" />
+      </svg>
     </button>
   </form>
 
@@ -162,11 +194,7 @@
               'No favorites yet. Tap ♡ on any title.'
             )}
       </p>
-      {#if selectedCategory}
-        <button type="button" class="btn btn-danger" on:click={removeSelectedCategory}>
-          {tr(locale, 'Видалити категорію', 'Delete category')}
-        </button>
-      {:else}
+      {#if !selectedCategory}
         <a class="btn btn-primary" href="/">{tr(locale, 'До пошуку', 'Go to search')}</a>
       {/if}
     </div>
@@ -226,6 +254,27 @@
     display: flex;
     align-items: baseline;
     gap: 10px;
+  }
+
+  .delete-category {
+    margin-left: auto;
+    align-self: center;
+    color: var(--danger);
+    background: transparent;
+    border-color: transparent;
+  }
+
+  .head svg,
+  .add-category svg {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .add-category {
+    color: #fff;
   }
 
   .chip-count {

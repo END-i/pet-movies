@@ -4,7 +4,8 @@
   import { onMount } from 'svelte';
   import MovieCard from './MovieCard.svelte';
   import { RECENT_RELEASE_DAYS } from '../lib/config';
-  import { initializePreferences, localeMode } from '../lib/preferences';
+  import { hiddenGenres, initializePreferences, localeMode } from '../lib/preferences';
+  import { HIDEABLE_GENRES } from '../lib/genres';
   import { tr } from '../lib/i18n';
   import { AGE_STEPS, normalizeAgeFilter } from '../lib/ageRating';
   import { buildPaginationTokens, parsePositiveInteger } from '../lib/pagination';
@@ -73,6 +74,30 @@
     { id: '16', uk: 'Анімація', en: 'Animation' }
   ];
 
+  // Titles with only a handful of votes are mostly unreleased or obscure; hide them by default.
+  const DEFAULT_MIN_VOTES = '50';
+  const voteOptions = ['0', '10', '20', '50', '100', '200', '1000', '5000'];
+
+  const countryOptions = [
+    { code: 'UA', uk: 'Україна', en: 'Ukraine' },
+    { code: 'US', uk: 'США', en: 'USA' },
+    { code: 'GB', uk: 'Велика Британія', en: 'United Kingdom' },
+    { code: 'FR', uk: 'Франція', en: 'France' },
+    { code: 'DE', uk: 'Німеччина', en: 'Germany' },
+    { code: 'IT', uk: 'Італія', en: 'Italy' },
+    { code: 'ES', uk: 'Іспанія', en: 'Spain' },
+    { code: 'PL', uk: 'Польща', en: 'Poland' },
+    { code: 'SE', uk: 'Швеція', en: 'Sweden' },
+    { code: 'DK', uk: 'Данія', en: 'Denmark' },
+    { code: 'NO', uk: 'Норвегія', en: 'Norway' },
+    { code: 'CA', uk: 'Канада', en: 'Canada' },
+    { code: 'AU', uk: 'Австралія', en: 'Australia' },
+    { code: 'JP', uk: 'Японія', en: 'Japan' },
+    { code: 'KR', uk: 'Південна Корея', en: 'South Korea' },
+    { code: 'IN', uk: 'Індія', en: 'India' },
+    { code: 'TR', uk: 'Туреччина', en: 'Turkey' }
+  ];
+
   const formatDate = (value: Date) => value.toISOString().slice(0, 10);
 
   const today = new Date();
@@ -82,7 +107,7 @@
   let category: Category = 'all';
   let genre = '';
   let minRating = '';
-  let minVotes = '';
+  let minVotes = DEFAULT_MIN_VOTES;
   let year = '';
   // Popular recent titles make a better first screen than raw newest releases (mostly unrated).
   let sortBy = 'popularity.desc';
@@ -113,11 +138,12 @@
   $: activeFilterCount = [
     genre,
     minRating,
-    minVotes,
+    minVotes !== DEFAULT_MIN_VOTES ? minVotes : '',
     year,
     includeCountry,
     ageRating,
-    releasePeriod !== 'all' ? releasePeriod : ''
+    releasePeriod !== 'all' ? releasePeriod : '',
+    $hiddenGenres.length ? 'hidden' : ''
   ].filter(Boolean).length;
   $: locale = $localeMode;
 
@@ -132,7 +158,7 @@
     category = 'all';
     genre = '';
     minRating = '';
-    minVotes = '';
+    minVotes = DEFAULT_MIN_VOTES;
     year = '';
     sortBy = 'popularity.desc';
     query = '';
@@ -146,6 +172,12 @@
     void fetchData(1);
   }
 
+  function toggleHiddenGenre(key: string) {
+    hiddenGenres.update((keys) =>
+      keys.includes(key) ? keys.filter((item) => item !== key) : [...keys, key]
+    );
+  }
+
   function applyPreset(value: FilterPreset) {
     if (preset === value) {
       resetFilters();
@@ -156,8 +188,9 @@
     query = '';
     year = '';
     includeCountry = '';
-    sortBy = 'primary_release_date.desc';
-    releasePeriod = '120';
+    // Presets browse the whole catalog by popularity; only "New releases" is limited in time.
+    sortBy = 'popularity.desc';
+    releasePeriod = 'all';
 
     if (value === 'adult') {
       category = 'movie';
@@ -166,7 +199,6 @@
       minVotes = '50';
       ageRating = '18';
       limit = '20';
-      releasePeriod = 'all';
     } else if (value === 'family') {
       category = 'movie';
       genre = '10751';
@@ -187,6 +219,8 @@
       minRating = '5';
       minVotes = '10';
       ageRating = '';
+      sortBy = 'primary_release_date.desc';
+      releasePeriod = '120';
       limit = '20';
     } else if (value === 'documentary') {
       category = 'movie';
@@ -194,8 +228,6 @@
       minRating = '5';
       minVotes = '20';
       ageRating = '';
-      sortBy = 'popularity.desc';
-      releasePeriod = 'all';
       limit = '20';
     }
 
@@ -240,6 +272,7 @@
     params.set('releasePeriod', releasePeriod);
     params.set('preset', preset);
     params.set('limit', limit);
+    params.set('hideGenres', get(hiddenGenres).join(','));
     return params;
   }
 
@@ -247,6 +280,8 @@
     if (typeof window === 'undefined') return;
     const params = buildParams(nextPage);
     params.delete('locale');
+    // Hidden genres are a saved preference, not part of a shareable search.
+    params.delete('hideGenres');
     // Keep shareable URLs short: drop empty values.
     for (const [key, value] of [...params.entries()]) {
       if (!value) params.delete(key);
@@ -670,14 +705,15 @@
         </label>
         <label>
           {tr(locale, 'Голосів від', 'Votes from')}
-          <input
-            class="input"
-            type="number"
-            inputmode="numeric"
-            min="0"
-            step="1"
-            bind:value={minVotes}
-          />
+          <select class="input" bind:value={minVotes}>
+            {#each voteOptions as votes}
+              <option value={votes}>
+                {votes === '0'
+                  ? tr(locale, 'Будь-яка кількість', 'Any')
+                  : Number(votes).toLocaleString(locale === 'en' ? 'en-US' : 'uk-UA')}
+              </option>
+            {/each}
+          </select>
         </label>
       </div>
 
@@ -694,15 +730,13 @@
           />
         </label>
         <label>
-          {tr(locale, 'Країна (код)', 'Country code')}
-          <input
-            class="input"
-            type="text"
-            bind:value={includeCountry}
-            placeholder="US"
-            maxlength="2"
-            autocapitalize="characters"
-          />
+          {tr(locale, 'Країна', 'Country')}
+          <select class="input" bind:value={includeCountry}>
+            <option value="">{tr(locale, 'Будь-яка', 'Any')}</option>
+            {#each countryOptions as country (country.code)}
+              <option value={country.code}>{tr(locale, country.uk, country.en)}</option>
+            {/each}
+          </select>
         </label>
       </div>
 
@@ -726,6 +760,25 @@
           </select>
         </label>
       </div>
+
+      <fieldset class="hidden-genres">
+        <legend>{tr(locale, 'Не показувати', 'Hide genres')}</legend>
+        <div class="genre-toggles">
+          {#each HIDEABLE_GENRES as item (item.key)}
+            <button
+              type="button"
+              class="chip"
+              aria-pressed={$hiddenGenres.includes(item.key)}
+              on:click={() => toggleHiddenGenre(item.key)}
+            >
+              {tr(locale, item.uk, item.en)}
+            </button>
+          {/each}
+        </div>
+        <p class="hint">
+          {tr(locale, 'Запам’ятовується на цьому пристрої.', 'Saved on this device.')}
+        </p>
+      </fieldset>
     </form>
 
     <footer class="sheet-actions">
@@ -872,7 +925,7 @@
   .scroll-top {
     position: fixed;
     right: 16px;
-    bottom: calc(var(--nav-h) + var(--safe-bottom) + 14px);
+    bottom: calc(var(--nav-h) + var(--nav-safe) + 14px);
     z-index: 30;
     width: 48px;
     height: 48px;
@@ -939,6 +992,40 @@
     padding: 6px 16px 12px;
     display: grid;
     gap: 12px;
+  }
+
+  .hidden-genres {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    display: grid;
+    gap: 8px;
+  }
+
+  .hidden-genres legend {
+    padding: 0;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .genre-toggles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .hidden-genres .chip[aria-pressed='true'] {
+    background: var(--danger-bg);
+    border-color: var(--danger-bg);
+    color: var(--text);
+    text-decoration: line-through;
+  }
+
+  .hidden-genres .hint {
+    margin: 0;
+    font-size: 0.8rem;
   }
 
   .filters label {

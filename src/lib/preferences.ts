@@ -1,10 +1,12 @@
 import { writable } from 'svelte/store';
+import { parseHiddenGenres } from './genres';
 
 export type ThemeMode = 'dark' | 'light';
 export type LocaleMode = 'uk' | 'en';
 
 export const THEME_STORAGE_KEY = 'pet-theme-mode';
 export const LOCALE_STORAGE_KEY = 'pet-locale-mode';
+export const HIDDEN_GENRES_STORAGE_KEY = 'pet-hidden-genres';
 
 const isBrowser = () => typeof window !== 'undefined';
 
@@ -32,6 +34,11 @@ export const localeMode = writable<LocaleMode>(
   isBrowser() && readStorage(LOCALE_STORAGE_KEY) === 'en' ? 'en' : 'uk'
 );
 
+/** Genre keys (see `HIDEABLE_GENRES`) the user never wants to see in the catalog. */
+export const hiddenGenres = writable<string[]>(
+  isBrowser() ? parseHiddenGenres(readStorage(HIDDEN_GENRES_STORAGE_KEY)) : []
+);
+
 let initialized = false;
 
 export function initializePreferences() {
@@ -50,4 +57,6 @@ export function initializePreferences() {
     writeStorage(LOCALE_STORAGE_KEY, locale);
     document.documentElement.setAttribute('lang', locale);
   });
+
+  hiddenGenres.subscribe((keys) => writeStorage(HIDDEN_GENRES_STORAGE_KEY, keys.join(',')));
 }

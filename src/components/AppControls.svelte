@@ -19,8 +19,7 @@
 <header class="app-header">
   <div class="inner">
     <a class="brand" href="/" aria-label={tr($localeMode, 'На головну', 'Go to home')}>
-      <img src="/icons/icon.svg" alt="" width="28" height="28" />
-      <span>PET Movies</span>
+      <img src="/icons/icon.svg" alt="" width="30" height="30" />
     </a>
 
     <div class="actions">
@@ -41,13 +40,13 @@
           : tr($localeMode, 'Увімкнути темну тему', 'Switch to dark theme')}
       >
         {#if $themeMode === 'dark'}
-          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
             <path
               d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
             />
           </svg>
         {:else}
-          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
             <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" />
           </svg>
         {/if}
@@ -82,10 +81,7 @@
   .brand {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
-    color: var(--text);
-    font-weight: 800;
-    font-size: 1.05rem;
+    min-height: 40px;
   }
 
   .brand img {
@@ -98,9 +94,9 @@
   }
 
   .pill {
-    min-width: 44px;
-    height: 40px;
-    padding: 0 12px;
+    min-width: 40px;
+    height: 34px;
+    padding: 0 10px;
     border-radius: 999px;
     border: 1px solid var(--border);
     background: var(--surface);

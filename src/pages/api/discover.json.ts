@@ -11,6 +11,7 @@ import {
 } from '../../lib/discover';
 import { tmdbLanguage } from '../../lib/i18n';
 import { usCertificationForFilter } from '../../lib/ageRating';
+import { hiddenGenreIds, isGenreAllowed, parseHiddenGenres } from '../../lib/genres';
 
 interface DiscoverResponse {
   page: number;
@@ -25,6 +26,7 @@ interface DiscoverResponse {
     release_date?: string;
     first_air_date?: string;
     poster_path: string | null;
+    genre_ids?: number[];
     overview: string;
     vote_average: number;
     vote_count: number;
@@ -125,6 +127,7 @@ async function loadByConfig(args: {
   releaseDateGte: string;
   releaseDateLte: string;
   includeCountry: string;
+  hiddenGenres: string[];
   language: 'uk-UA' | 'en-US';
 }): Promise<{ page: number; totalPages: number; totalResults: number; results: CatalogItem[] }> {
   const {
@@ -140,8 +143,10 @@ async function loadByConfig(args: {
     releaseDateGte,
     releaseDateLte,
     includeCountry,
+    hiddenGenres,
     language
   } = args;
+  const hiddenIds = hiddenGenreIds(hiddenGenres, categoryConfig.mediaType);
 
   const withGenres = [categoryConfig.forceAnimation ? '16' : undefined, genre]
     .filter(Boolean)
@@ -168,8 +173,11 @@ async function loadByConfig(args: {
     const certification = usCertificationForFilter(ageRating);
     discoverParams.certification_country = certification ? 'US' : undefined;
     discoverParams['certification.lte'] = certification;
-    discoverParams.without_genres = categoryConfig.forceAnimation ? undefined : '16';
+    discoverParams.without_genres =
+      [categoryConfig.forceAnimation ? undefined : 16, ...hiddenIds].filter(Boolean).join(',') ||
+      undefined;
   } else {
+    discoverParams.without_genres = hiddenIds.join(',') || undefined;
     discoverParams.first_air_date_year = year || undefined;
     discoverParams['first_air_date.gte'] = releaseDateGte || undefined;
     discoverParams['first_air_date.lte'] = releaseDateLte || undefined;
@@ -180,8 +188,11 @@ async function loadByConfig(args: {
     : `/discover/${categoryConfig.mediaType}`;
   const discovered = await tmdbRequest<DiscoverResponse>(endpoint, discoverParams);
 
+  // `/search` ignores `without_genres`, so hidden genres are also filtered here.
+  const visible = discovered.results.filter((item) => isGenreAllowed(item.genre_ids, hiddenIds));
+
   const enrichedItems = await Promise.all(
-    discovered.results.map(async (item) => {
+    visible.map(async (item) => {
       try {
         const details = await loadEnrichment(categoryConfig.mediaType, item.id, language);
         const localizedTitle = details.title ?? item.title ?? item.name;
@@ -262,6 +273,7 @@ export const GET: APIRoute = async ({ url }) => {
     const limit = clampLimit(url.searchParams.get('limit'));
     const includeCountry = (url.searchParams.get('includeCountry') ?? '').trim().toUpperCase();
     const excludedCountries = parseExcludedCountries(url.searchParams.get('excludedCountries'));
+    const hiddenGenres = parseHiddenGenres(url.searchParams.get('hideGenres'));
 
     const loaded =
       category === 'all'
@@ -279,6 +291,7 @@ export const GET: APIRoute = async ({ url }) => {
               releaseDateGte,
               releaseDateLte,
               includeCountry,
+              hiddenGenres,
               language
             }),
             loadByConfig({
@@ -294,6 +307,7 @@ export const GET: APIRoute = async ({ url }) => {
               releaseDateGte,
               releaseDateLte,
               includeCountry,
+              hiddenGenres,
               language
             })
           ])
@@ -311,6 +325,7 @@ export const GET: APIRoute = async ({ url }) => {
               releaseDateGte,
               releaseDateLte,
               includeCountry,
+              hiddenGenres,
               language
             })
           ];

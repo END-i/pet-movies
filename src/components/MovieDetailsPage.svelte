@@ -462,6 +462,9 @@
 
   .video-wrap {
     position: relative;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     aspect-ratio: 16 / 9;
     border-radius: var(--radius);
     overflow: hidden;
@@ -475,6 +478,12 @@
     width: 100%;
     height: 100%;
     border: 0;
+  }
+
+  /* iOS Safari sizes iframes to their content and ignores width: 100%. */
+  .video-wrap iframe {
+    width: 1px;
+    min-width: 100%;
   }
 
   .trailer-cover {

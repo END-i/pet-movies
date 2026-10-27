@@ -11,7 +11,7 @@
     class:active={active === 'search'}
     aria-current={active === 'search' ? 'page' : undefined}
   >
-    <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
       <path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14ZM20 20l-3.5-3.5" />
     </svg>
     <span>{tr($localeMode, 'Пошук', 'Search')}</span>
@@ -21,7 +21,7 @@
     class:active={active === 'favorites'}
     aria-current={active === 'favorites' ? 'page' : undefined}
   >
-    <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
       <path
         d="M12 20.5s-7.5-4.6-7.5-10.1A4.4 4.4 0 0 1 12 7.6a4.4 4.4 0 0 1 7.5 2.8c0 5.5-7.5 10.1-7.5 10.1Z"
       />
@@ -37,8 +37,8 @@
     right: 0;
     bottom: 0;
     z-index: 40;
-    height: calc(var(--nav-h) + var(--safe-bottom));
-    padding-bottom: var(--safe-bottom);
+    height: calc(var(--nav-h) + var(--nav-safe));
+    padding-bottom: var(--nav-safe);
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     background: var(--header-bg);
@@ -48,12 +48,12 @@
   }
 
   a {
-    display: grid;
-    place-items: center;
-    align-content: center;
-    gap: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     color: var(--muted);
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     font-weight: 600;
   }
 

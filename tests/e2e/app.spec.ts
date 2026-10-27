@@ -112,6 +112,54 @@ test('heart toggles a title in favorites and favorites page lists it', async ({ 
   await expect(page.getByText(/Улюблених ще немає/)).toBeVisible();
 });
 
+test('favorites: categories are created with + and deleted with the trash icon', async ({
+  page
+}) => {
+  await mockApi(page);
+  await gotoHydrated(page, '/favorites');
+
+  const create = page.getByRole('button', { name: 'Створити категорію' });
+  await expect(create).toBeDisabled();
+  await page.getByRole('textbox', { name: 'Нова категорія' }).fill('На вихідні');
+  await create.click();
+  const chips = page.getByRole('group', { name: 'Категорії' });
+  await expect(chips.getByRole('button', { name: /На вихідні/ })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  );
+
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'Видалити категорію «На вихідні»' }).click();
+  await expect(chips.getByRole('button', { name: /На вихідні/ })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Видалити категорію/ })).toHaveCount(0);
+});
+
+test('hidden genres are remembered and sent with every search', async ({ page }) => {
+  const { discoverRequests } = await mockApi(page);
+  await gotoHydrated(page, '/');
+  await expect.poll(() => discoverRequests.at(-1)?.searchParams.get('minVotes')).toBe('50');
+
+  await page.getByRole('button', { name: 'Фільтри' }).click();
+  const sheet = page.getByRole('dialog', { name: 'Фільтри' });
+  await sheet.getByRole('button', { name: 'Жахи' }).click();
+  await sheet.getByRole('button', { name: 'Мелодрами' }).click();
+  await expect(sheet.getByLabel('Країна')).toHaveValue('');
+  await sheet.getByLabel('Країна').selectOption({ label: 'Україна' });
+  await sheet.getByRole('button', { name: 'Показати' }).click();
+
+  await expect
+    .poll(() => discoverRequests.at(-1)?.searchParams.get('hideGenres'))
+    .toBe('horror,romance');
+  expect(discoverRequests.at(-1)?.searchParams.get('includeCountry')).toBe('UA');
+  expect(page.url()).not.toContain('hideGenres');
+
+  await page.reload();
+  await page.waitForFunction(() => !document.querySelector('astro-island[ssr]'));
+  await expect
+    .poll(() => discoverRequests.at(-1)?.searchParams.get('hideGenres'))
+    .toBe('horror,romance');
+});
+
 test('details page shows info, saves to a new category and links to the actor', async ({
   page
 }) => {
@@ -181,4 +229,19 @@ test('every page shows the TMDB attribution required by its terms', async ({ pag
       'https://www.themoviedb.org/'
     );
   }
+});
+
+test('presets search the whole catalog, only "New releases" is recent', async ({ page }) => {
+  const { discoverRequests } = await mockApi(page);
+  await gotoHydrated(page, '/');
+  const presets = page.getByRole('group', { name: 'Добірки' });
+
+  await presets.getByRole('button', { name: 'Для сім’ї' }).click();
+  await expect.poll(() => discoverRequests.at(-1)?.searchParams.get('genre')).toBe('10751');
+  expect(discoverRequests.at(-1)?.searchParams.get('releaseDateGte')).toBe('');
+  expect(discoverRequests.at(-1)?.searchParams.get('sortBy')).toBe('popularity.desc');
+
+  await presets.getByRole('button', { name: 'Новинки' }).click();
+  await expect.poll(() => discoverRequests.at(-1)?.searchParams.get('releasePeriod')).toBe('120');
+  expect(discoverRequests.at(-1)?.searchParams.get('releaseDateGte')).not.toBe('');
 });

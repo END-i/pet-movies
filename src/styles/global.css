@@ -43,8 +43,10 @@
   --radius: 14px;
   --safe-top: env(safe-area-inset-top);
   --safe-bottom: env(safe-area-inset-bottom);
-  --header-h: 56px;
-  --nav-h: 64px;
+  /* The bottom nav may overlap the home-indicator zone a little; keeps its height steady. */
+  --nav-safe: max(0px, calc(env(safe-area-inset-bottom) - 18px));
+  --header-h: 46px;
+  --nav-h: 50px;
 }
 
 * {
@@ -71,7 +73,7 @@ body {
     sans-serif;
   line-height: 1.45;
   -webkit-tap-highlight-color: transparent;
-  padding-bottom: calc(var(--nav-h) + var(--safe-bottom));
+  padding-bottom: calc(var(--nav-h) + var(--nav-safe));
 }
 
 a {
