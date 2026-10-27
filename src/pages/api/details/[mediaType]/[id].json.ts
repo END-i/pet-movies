@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { makeImageUrl, tmdbRequest, TMDB_DEBUG } from '../../../../lib/tmdb';
+import { makeImageUrl, tmdbRequest, TMDB_DEBUG, TMDB_TTL } from '../../../../lib/tmdb';
 import type { MediaType, MovieDetails } from '../../../../lib/types';
 import { pickAgeRating } from '../../../../lib/ageRating';
 import { tmdbLanguage } from '../../../../lib/i18n';
@@ -71,13 +71,17 @@ export const GET: APIRoute = async ({ params, url }) => {
     }
 
     const language = tmdbLanguage(url.searchParams.get('locale'));
-    const data = await tmdbRequest<DetailsResponse>(`/${mediaType}/${id}`, {
-      append_to_response: `credits,videos,external_ids,translations,${
-        mediaType === 'movie' ? 'release_dates' : 'content_ratings'
-      }`,
-      include_video_language: 'uk,en,null',
-      language
-    });
+    const data = await tmdbRequest<DetailsResponse>(
+      `/${mediaType}/${id}`,
+      {
+        append_to_response: `credits,videos,external_ids,translations,${
+          mediaType === 'movie' ? 'release_dates' : 'content_ratings'
+        }`,
+        include_video_language: 'uk,en,null',
+        language
+      },
+      { ttlMs: TMDB_TTL.entity }
+    );
 
     const certifications =
       mediaType === 'movie'
@@ -134,7 +138,7 @@ export const GET: APIRoute = async ({ params, url }) => {
         id: actor.id,
         name: actor.name,
         character: actor.character,
-        photo: makeImageUrl(actor.profile_path)
+        photo: makeImageUrl(actor.profile_path, 'w185')
       })),
       trailerKey: trailer?.key ?? null
     };

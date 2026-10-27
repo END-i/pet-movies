@@ -12,6 +12,7 @@
   } from '../lib/favorites';
   import { localeMode } from '../lib/preferences';
   import { tr } from '../lib/i18n';
+  import { POSTER_SIZES, posterSrcset } from '../lib/images';
   import type { MovieDetails } from '../lib/types';
 
   const CLIENT_DEBUG = PUBLIC_DEBUG_LOGS;
@@ -174,6 +175,8 @@
         <img
           class="poster"
           src={details.poster ?? '/fallback-poster.svg'}
+          srcset={posterSrcset(details.poster)}
+          sizes={POSTER_SIZES.details}
           alt={details.title}
           width="342"
           height="513"

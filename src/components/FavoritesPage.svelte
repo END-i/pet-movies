@@ -11,6 +11,7 @@
   } from '../lib/favorites';
   import { localeMode } from '../lib/preferences';
   import { tr } from '../lib/i18n';
+  import { POSTER_SIZES, posterSrcset } from '../lib/images';
   import type { FavoriteEntry, FavoritesStore } from '../lib/types';
 
   type DisplayEntry = { category: string; item: FavoriteEntry };
@@ -181,6 +182,8 @@
           >
             <img
               src={entry.item.poster ?? '/fallback-poster.svg'}
+              srcset={posterSrcset(entry.item.poster)}
+              sizes={POSTER_SIZES.thumb}
               alt=""
               loading="lazy"
               width="185"

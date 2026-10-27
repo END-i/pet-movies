@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { makeImageUrl, tmdbRequest, TMDB_DEBUG } from '../../../lib/tmdb';
+import { makeImageUrl, tmdbRequest, TMDB_DEBUG, TMDB_TTL } from '../../../lib/tmdb';
 import { tmdbLanguage } from '../../../lib/i18n';
 import type { ActorCreditItem, ActorDetails } from '../../../lib/types';
 
@@ -92,10 +92,14 @@ export const GET: APIRoute = async ({ params, url }) => {
       });
     }
 
-    const data = await tmdbRequest<PersonResponse>(`/person/${id}`, {
-      append_to_response: 'movie_credits,tv_credits',
-      language: tmdbLanguage(url.searchParams.get('locale'))
-    });
+    const data = await tmdbRequest<PersonResponse>(
+      `/person/${id}`,
+      {
+        append_to_response: 'movie_credits,tv_credits',
+        language: tmdbLanguage(url.searchParams.get('locale'))
+      },
+      { ttlMs: TMDB_TTL.entity }
+    );
 
     const age = calculateAge(data.birthday);
     const segment = resolveSegment(data.gender, age);
@@ -135,7 +139,7 @@ export const GET: APIRoute = async ({ params, url }) => {
       genderLabel: resolveGenderLabel(data.gender),
       age,
       segment,
-      photo: makeImageUrl(data.profile_path ?? null),
+      photo: makeImageUrl(data.profile_path ?? null, 'h632'),
       biography: data.biography?.trim() || 'Біографія поки відсутня.',
       birthday: data.birthday ?? 'Невідомо',
       placeOfBirth: data.place_of_birth ?? 'Невідомо',

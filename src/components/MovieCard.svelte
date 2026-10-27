@@ -3,6 +3,7 @@
   import { addToFavorites, isInCategory, removeFromFavorites } from '../lib/favorites';
   import { localeMode } from '../lib/preferences';
   import { tr } from '../lib/i18n';
+  import { POSTER_SIZES, posterSrcset } from '../lib/images';
   import type { CatalogItem } from '../lib/types';
 
   export let item: CatalogItem;
@@ -48,6 +49,8 @@
   <a class="poster-link" {href} tabindex="-1" aria-hidden="true">
     <img
       src={posterSrc}
+      srcset={posterFailed ? undefined : posterSrcset(item.poster)}
+      sizes={POSTER_SIZES.card}
       alt=""
       loading="lazy"
       decoding="async"

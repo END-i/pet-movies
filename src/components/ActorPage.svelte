@@ -3,6 +3,7 @@
   import { get } from 'svelte/store';
   import { localeMode } from '../lib/preferences';
   import { tr } from '../lib/i18n';
+  import { POSTER_SIZES, posterSrcset, profileSrcset } from '../lib/images';
   import type { ActorDetails } from '../lib/types';
 
   export let id: number;
@@ -79,7 +80,14 @@
     </div>
   {:else}
     <section class="profile">
-      <img src={actor.photo ?? '/fallback-person.svg'} alt={actor.name} width="300" height="400" />
+      <img
+        src={actor.photo ?? '/fallback-person.svg'}
+        srcset={profileSrcset(actor.photo)}
+        sizes="(min-width: 720px) 240px, 120px"
+        alt={actor.name}
+        width="300"
+        height="400"
+      />
       <div class="info">
         <h1 class="page-title">{actor.name}</h1>
         {#if actor.originalName && actor.originalName !== actor.name}
@@ -134,6 +142,8 @@
             <a class="credit" href={`/details/${credit.mediaType}/${credit.id}`}>
               <img
                 src={credit.poster ?? '/fallback-poster.svg'}
+                srcset={posterSrcset(credit.poster)}
+                sizes={POSTER_SIZES.credit}
                 alt=""
                 loading="lazy"
                 width="185"

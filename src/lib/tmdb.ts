@@ -1,8 +1,18 @@
 import { TMDB_API_KEY, TMDB_DEBUG as TMDB_DEBUG_ENV } from 'astro:env/server';
+import { createTtlCache } from './cache';
 
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
 export const TMDB_DEBUG = TMDB_DEBUG_ENV;
+
+const MINUTE = 60_000;
+export const TMDB_TTL = {
+  list: 15 * MINUTE,
+  entity: 6 * 60 * MINUTE
+} as const;
+
+// Raw TMDB responses; small cap because details with credits can be tens of KB each.
+const responseCache = createTtlCache<unknown>({ maxEntries: 300, ttlMs: TMDB_TTL.list });
 
 function getApiKey(): string {
   if (!TMDB_API_KEY) {
@@ -12,9 +22,29 @@ function getApiKey(): string {
   return TMDB_API_KEY;
 }
 
-export async function tmdbRequest<T>(
+/**
+ * GET a TMDB endpoint. Responses are cached in memory for `ttlMs` (0 disables caching) and
+ * identical concurrent requests share one network call.
+ */
+export function tmdbRequest<T>(
   path: string,
-  params: Record<string, string | number | undefined> = {}
+  params: Record<string, string | number | undefined> = {},
+  options: { ttlMs?: number } = {}
+): Promise<T> {
+  const ttlMs = options.ttlMs ?? TMDB_TTL.list;
+  const key = `${path}?${Object.entries(params)
+    .filter(([, value]) => value !== undefined && value !== '')
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([name, value]) => `${name}=${value}`)
+    .join('&')}`;
+
+  if (ttlMs <= 0) return fetchTmdb<T>(path, params);
+  return responseCache.getOrLoad(key, () => fetchTmdb<T>(path, params), ttlMs) as Promise<T>;
+}
+
+async function fetchTmdb<T>(
+  path: string,
+  params: Record<string, string | number | undefined>
 ): Promise<T> {
   const requestParams = { ...params };
   const language =
@@ -49,7 +79,7 @@ export async function tmdbRequest<T>(
   return payload;
 }
 
-export function makeImageUrl(path: string | null | undefined, size = 'w500'): string | null {
+export function makeImageUrl(path: string | null | undefined, size = 'w342'): string | null {
   if (!path) return null;
   return `https://image.tmdb.org/t/p/${size}${path}`;
 }

@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { makeImageUrl, tmdbRequest, TMDB_DEBUG } from '../../lib/tmdb';
+import { createTtlCache } from '../../lib/cache';
 import type { CatalogItem, MediaType } from '../../lib/types';
 import {
   clampLimit,
@@ -49,6 +50,59 @@ interface EntityDetails {
       };
     }>;
   };
+}
+
+/** The part of `/{type}/{id}` the catalog needs; kept small so thousands fit in memory. */
+interface Enrichment {
+  title?: string;
+  overview?: string;
+  countryNames: string[];
+  countryCodes: string[];
+  actors: string[];
+  genres: string[];
+  hasUkrainianTranslation: boolean;
+}
+
+// Each catalog page needs details for up to 20 titles; they change rarely, so keep them half a day.
+const enrichmentCache = createTtlCache<Enrichment>({
+  maxEntries: 5000,
+  ttlMs: 12 * 60 * 60 * 1000
+});
+
+async function loadEnrichment(
+  mediaType: MediaType,
+  id: number,
+  language: string
+): Promise<Enrichment> {
+  return enrichmentCache.getOrLoad(`${mediaType}:${id}:${language}`, async () => {
+    const details = await tmdbRequest<EntityDetails>(
+      `/${mediaType}/${id}`,
+      { append_to_response: 'credits,translations', language },
+      { ttlMs: 0 }
+    );
+    const ukTranslation = (details.translations?.translations ?? []).find(
+      (translation) => translation.iso_639_1 === 'uk'
+    );
+
+    return {
+      title: details.title ?? details.name,
+      overview: details.overview,
+      countryNames: details.production_countries?.map((country) => country.name) ?? [],
+      countryCodes: Array.from(
+        new Set([
+          ...(details.production_countries ?? [])
+            .map((country) => country.iso_3166_1)
+            .filter((code): code is string => Boolean(code)),
+          ...(details.origin_country ?? [])
+        ])
+      ),
+      actors: (details.credits?.cast ?? []).slice(0, 3).map((actor) => actor.name),
+      genres: (details.genres ?? []).map((genreItem) => genreItem.name),
+      hasUkrainianTranslation: Boolean(
+        ukTranslation?.data?.title || ukTranslation?.data?.name || ukTranslation?.data?.overview
+      )
+    };
+  });
 }
 
 const CATEGORY_TO_CONFIG: Record<string, { mediaType: MediaType; forceAnimation: boolean }> = {
@@ -127,46 +181,24 @@ async function loadByConfig(args: {
   const enrichedItems = await Promise.all(
     discovered.results.map(async (item) => {
       try {
-        const details = await tmdbRequest<EntityDetails>(
-          `/${categoryConfig.mediaType}/${item.id}`,
-          {
-            append_to_response: 'credits,translations',
-            language
-          }
-        );
-
-        const countryNames = details.production_countries?.map((country) => country.name) ?? [];
-        const countryCodes = Array.from(
-          new Set([
-            ...(details.production_countries ?? [])
-              .map((country) => country.iso_3166_1)
-              .filter((code): code is string => Boolean(code)),
-            ...(details.origin_country ?? [])
-          ])
-        );
-        const ukTranslation = (details.translations?.translations ?? []).find(
-          (translation) => translation.iso_639_1 === 'uk'
-        );
-        const localizedTitle = details.title ?? details.name ?? item.title ?? item.name;
+        const details = await loadEnrichment(categoryConfig.mediaType, item.id, language);
+        const localizedTitle = details.title ?? item.title ?? item.name;
         const localizedOverview = details.overview ?? item.overview;
         const originalTitle =
           item.original_title ?? item.original_name ?? localizedTitle ?? 'Без назви';
-        const hasUkrainianTranslation = Boolean(
-          ukTranslation?.data?.title || ukTranslation?.data?.name || ukTranslation?.data?.overview
-        );
 
         return {
           id: item.id,
           mediaType: categoryConfig.mediaType,
           title: localizedTitle ?? originalTitle,
           originalTitle,
-          hasUkrainianTranslation,
+          hasUkrainianTranslation: details.hasUkrainianTranslation,
           year: (item.release_date ?? item.first_air_date ?? '').slice(0, 4),
           poster: makeImageUrl(item.poster_path),
-          countries: countryNames.length ? countryNames : countryCodes,
-          countryCodes,
-          actors: (details.credits?.cast ?? []).slice(0, 3).map((actor) => actor.name),
-          genres: (details.genres ?? []).map((genreItem) => genreItem.name),
+          countries: details.countryNames.length ? details.countryNames : details.countryCodes,
+          countryCodes: details.countryCodes,
+          actors: details.actors,
+          genres: details.genres,
           overview: localizedOverview || 'Опис поки відсутній.',
           voteAverage: item.vote_average,
           voteCount: item.vote_count
