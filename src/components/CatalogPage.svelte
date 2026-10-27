@@ -6,6 +6,7 @@
   import { RECENT_RELEASE_DAYS } from '../lib/config';
   import { initializePreferences, localeMode } from '../lib/preferences';
   import { tr } from '../lib/i18n';
+  import { AGE_STEPS, normalizeAgeFilter } from '../lib/ageRating';
   import { buildPaginationTokens, parsePositiveInteger } from '../lib/pagination';
   import type { CatalogItem } from '../lib/types';
 
@@ -163,7 +164,7 @@
       genre = '';
       minRating = '5';
       minVotes = '50';
-      ageRating = 'R';
+      ageRating = '18';
       limit = '20';
       releasePeriod = 'all';
     } else if (value === 'family') {
@@ -171,14 +172,14 @@
       genre = '10751';
       minRating = '6';
       minVotes = '50';
-      ageRating = 'PG';
+      ageRating = '6';
       limit = '15';
     } else if (value === 'child12') {
       category = 'cartoon';
       genre = '';
       minRating = '6';
       minVotes = '100';
-      ageRating = 'PG-13';
+      ageRating = '12';
       limit = '15';
     } else if (value === 'new') {
       category = 'all';
@@ -278,7 +279,7 @@
     sortBy = params.get('sortBy') ?? sortBy;
     query = params.get('query') ?? query;
     includeCountry = (params.get('includeCountry') ?? includeCountry).toUpperCase();
-    ageRating = params.get('ageRating') ?? ageRating;
+    ageRating = params.has('ageRating') ? normalizeAgeFilter(params.get('ageRating')) : ageRating;
     limit = params.get('limit') ?? limit;
 
     const releasePeriodValue = params.get('releasePeriod') as ReleasePeriod | null;
@@ -707,13 +708,12 @@
 
       <div class="row">
         <label>
-          {tr(locale, 'Віковий рейтинг', 'Age rating')}
+          {tr(locale, 'Вік глядача', 'Viewer age')}
           <select class="input" bind:value={ageRating}>
             <option value="">{tr(locale, 'Будь-який', 'Any')}</option>
-            <option value="G">G</option>
-            <option value="PG">PG</option>
-            <option value="PG-13">PG-13</option>
-            <option value="R">R</option>
+            {#each AGE_STEPS as age}
+              <option value={age}>{age}+</option>
+            {/each}
           </select>
         </label>
         <label>

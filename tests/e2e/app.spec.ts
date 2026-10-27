@@ -70,10 +70,14 @@ test('filters open in a sheet and apply with an active-filter badge', async ({ p
   await expect(sheet).toBeVisible();
 
   await sheet.getByLabel('Рейтинг від').fill('7');
+  const age = sheet.getByLabel('Вік глядача');
+  await expect(age.locator('option')).toHaveText(['Будь-який', '0+', '6+', '12+', '16+', '18+']);
+  await age.selectOption('12+');
   await sheet.getByRole('button', { name: 'Показати' }).click();
 
   await expect(sheet).toBeHidden();
   await expect.poll(() => discoverRequests.at(-1)?.searchParams.get('minRating')).toBe('7');
+  expect(discoverRequests.at(-1)?.searchParams.get('ageRating')).toBe('12');
   await expect(page.getByRole('button', { name: 'Фільтри' })).toContainText(/\d/);
 });
 
@@ -116,7 +120,7 @@ test('details page shows info, saves to a new category and links to the actor', 
 
   await expect(page.getByRole('heading', { name: 'Матриця', level: 1 })).toBeVisible();
   await expect(page.getByText('The Matrix')).toBeVisible();
-  await expect(page.getByText('R', { exact: true })).toBeVisible();
+  await expect(page.getByText('16+', { exact: true })).toBeVisible();
   await expectNoHorizontalScroll(page);
 
   await page.getByRole('textbox', { name: 'Нова категорія' }).fill('Класика');

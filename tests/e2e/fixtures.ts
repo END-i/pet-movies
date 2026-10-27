@@ -44,7 +44,7 @@ export const movieDetails = {
   backdrop: null,
   overview: 'Хакер дізнається правду про реальність.',
   countries: ['США'],
-  ageRating: 'R',
+  ageRating: '16+',
   voteAverage: 8.2,
   voteCount: 25000,
   popularity: 80,

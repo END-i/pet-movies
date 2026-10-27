@@ -10,6 +10,7 @@ import {
   parseExcludedCountries
 } from '../../lib/discover';
 import { tmdbLanguage } from '../../lib/i18n';
+import { usCertificationForFilter } from '../../lib/ageRating';
 
 interface DiscoverResponse {
   page: number;
@@ -164,8 +165,9 @@ async function loadByConfig(args: {
     discoverParams.primary_release_year = year || undefined;
     discoverParams['primary_release_date.gte'] = releaseDateGte || undefined;
     discoverParams['primary_release_date.lte'] = releaseDateLte || undefined;
-    discoverParams.certification_country = ageRating ? 'US' : undefined;
-    discoverParams['certification.lte'] = ageRating || undefined;
+    const certification = usCertificationForFilter(ageRating);
+    discoverParams.certification_country = certification ? 'US' : undefined;
+    discoverParams['certification.lte'] = certification;
     discoverParams.without_genres = categoryConfig.forceAnimation ? undefined : '16';
   } else {
     discoverParams.first_air_date_year = year || undefined;
