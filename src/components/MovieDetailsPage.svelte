@@ -190,14 +190,18 @@
       <div class="hero-top">
         <button
           type="button"
-          class="round"
+          class="round-btn"
           on:click={goBack}
-          aria-label={tr(locale, 'Назад', 'Back')}>←</button
+          aria-label={tr(locale, 'Назад', 'Back')}
         >
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"
+            ><path d="M15 5l-7 7 7 7" /></svg
+          >
+        </button>
         <div class="hero-actions">
           <button
             type="button"
-            class="round heart"
+            class="round-btn heart"
             class:active={savedIn.length > 0}
             on:click={toggleHeart}
             aria-pressed={savedIn.length > 0}
@@ -213,7 +217,7 @@
           </button>
           <button
             type="button"
-            class="round"
+            class="round-btn"
             on:click={share}
             aria-label={tr(locale, 'Поділитися', 'Share')}
           >
@@ -506,21 +510,6 @@
     margin: 0 auto 12px;
   }
 
-  .round {
-    width: 44px;
-    height: 44px;
-    border-radius: 999px;
-    border: 0;
-    background: rgba(0, 0, 0, 0.45);
-    color: #fff;
-    font-size: 1.2rem;
-    display: grid;
-    place-items: center;
-    cursor: pointer;
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
-  }
-
   .hero-actions {
     display: flex;
     gap: 8px;
@@ -543,14 +532,6 @@
 
   .add-category {
     color: #fff;
-  }
-
-  .round svg {
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.8;
-    stroke-linecap: round;
-    stroke-linejoin: round;
   }
 
   .hero-main {
@@ -646,12 +627,32 @@
   summary {
     cursor: pointer;
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 8px;
     min-height: 32px;
-    align-content: center;
     font-weight: 600;
     font-size: 0.92rem;
+    list-style: none;
+  }
+
+  summary::-webkit-details-marker {
+    display: none;
+  }
+
+  summary::after {
+    content: '';
+    flex: none;
+    margin-left: auto;
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid var(--muted);
+    border-bottom: 2px solid var(--muted);
+    transform: rotate(45deg) translateY(-2px);
+    transition: transform 0.15s;
+  }
+
+  details[open] > summary::after {
+    transform: rotate(-135deg) translateY(-2px);
   }
 
   .saved-in {

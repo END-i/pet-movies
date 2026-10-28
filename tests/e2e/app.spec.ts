@@ -210,6 +210,19 @@ test('details page shows info, saves to a new category and links to the actor', 
   await expect(page).toHaveURL(/\/person\/6384/);
   await expect(page.getByRole('heading', { name: 'Кіану Рівз' })).toBeVisible();
   await expect(page.getByRole('link', { name: /Матриця/ })).toBeVisible();
+
+  const credits = page.locator('.credit strong');
+  await page.getByRole('combobox').selectOption({ label: 'Новіші' });
+  await expect(credits).toHaveText(['Джон Вік', 'Людина Ци', 'Матриця']);
+
+  await page
+    .getByRole('group', { name: 'Роль' })
+    .getByRole('button', { name: /Режисура/ })
+    .click();
+  await expect(credits).toHaveText(['Людина Ци']);
+  await expect(page.getByText('Режисер', { exact: true })).toBeVisible();
+
+  await expect(page.getByRole('button', { name: 'Назад' })).toBeVisible();
 });
 
 test('language and theme switches persist across reloads', async ({ page }) => {

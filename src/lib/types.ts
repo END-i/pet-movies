@@ -33,6 +33,8 @@ export interface Actor {
   photo: string | null;
 }
 
+export type CreditRole = 'cast' | 'directing' | 'writing' | 'production';
+
 export interface ActorCreditItem {
   id: number;
   mediaType: MediaType;
@@ -40,8 +42,11 @@ export interface ActorCreditItem {
   originalTitle: string;
   year: string;
   poster: string | null;
+  role: CreditRole;
+  /** Character for cast, job(s) for crew (e.g. "Director, Screenplay"). */
   character: string;
   voteAverage: number;
+  voteCount: number;
 }
 
 export interface ActorDetails {

@@ -2,6 +2,26 @@ import type { APIRoute } from 'astro';
 import { makeImageUrl, tmdbRequest, TMDB_DEBUG, TMDB_TTL } from '../../../lib/tmdb';
 import { tmdbLanguage } from '../../../lib/i18n';
 import type { ActorCreditItem, ActorDetails } from '../../../lib/types';
+import { mergeCredits, roleForDepartment, sortCredits } from '../../../lib/filmography';
+
+interface TmdbCredit {
+  id: number;
+  title?: string;
+  original_title?: string;
+  release_date?: string;
+  name?: string;
+  original_name?: string;
+  first_air_date?: string;
+  poster_path?: string | null;
+  character?: string;
+  job?: string;
+  department?: string;
+  vote_average?: number;
+  vote_count?: number;
+}
+
+// Enough for prolific people; the page shows them in chunks.
+const MAX_CREDITS = 240;
 
 interface PersonResponse {
   id: number;
@@ -15,30 +35,8 @@ interface PersonResponse {
   popularity?: number;
   profile_path?: string | null;
   imdb_id?: string | null;
-  movie_credits?: {
-    cast?: Array<{
-      id: number;
-      title?: string;
-      original_title?: string;
-      release_date?: string;
-      poster_path?: string | null;
-      character?: string;
-      vote_average?: number;
-      vote_count?: number;
-    }>;
-  };
-  tv_credits?: {
-    cast?: Array<{
-      id: number;
-      name?: string;
-      original_name?: string;
-      first_air_date?: string;
-      poster_path?: string | null;
-      character?: string;
-      vote_average?: number;
-      vote_count?: number;
-    }>;
-  };
+  movie_credits?: { cast?: TmdbCredit[]; crew?: TmdbCredit[] };
+  tv_credits?: { cast?: TmdbCredit[]; crew?: TmdbCredit[] };
 }
 
 function calculateAge(birthday?: string): number | null {
@@ -73,13 +71,40 @@ function resolveSegment(
   return 'person';
 }
 
-function sortCredits(credits: Array<ActorCreditItem & { voteCount: number }>) {
-  return credits.sort((left, right) => {
-    if (right.voteCount !== left.voteCount) {
-      return right.voteCount - left.voteCount;
+function toCredit(
+  item: TmdbCredit,
+  mediaType: 'movie' | 'tv',
+  role: ActorCreditItem['role']
+): ActorCreditItem {
+  const title =
+    mediaType === 'movie' ? (item.title ?? item.original_title) : (item.name ?? item.original_name);
+  const originalTitle =
+    mediaType === 'movie' ? (item.original_title ?? item.title) : (item.original_name ?? item.name);
+  return {
+    id: item.id,
+    mediaType,
+    title: title ?? 'Без назви',
+    originalTitle: originalTitle ?? title ?? 'Без назви',
+    year: ((mediaType === 'movie' ? item.release_date : item.first_air_date) ?? '').slice(0, 4),
+    poster: makeImageUrl(item.poster_path ?? null),
+    role,
+    character: (role === 'cast' ? item.character : item.job) ?? '',
+    voteAverage: item.vote_average ?? 0,
+    voteCount: item.vote_count ?? 0
+  };
+}
+
+function collectCredits(data: PersonResponse): ActorCreditItem[] {
+  const all: ActorCreditItem[] = [];
+  for (const mediaType of ['movie', 'tv'] as const) {
+    const source = mediaType === 'movie' ? data.movie_credits : data.tv_credits;
+    for (const item of source?.cast ?? []) all.push(toCredit(item, mediaType, 'cast'));
+    for (const item of source?.crew ?? []) {
+      const role = roleForDepartment(item.department);
+      if (role) all.push(toCredit(item, mediaType, role));
     }
-    return right.year.localeCompare(left.year);
-  });
+  }
+  return sortCredits(mergeCredits(all), 'popular').slice(0, MAX_CREDITS);
 }
 
 export const GET: APIRoute = async ({ params, url }) => {
@@ -104,33 +129,7 @@ export const GET: APIRoute = async ({ params, url }) => {
     const age = calculateAge(data.birthday);
     const segment = resolveSegment(data.gender, age);
 
-    const movieCredits = (data.movie_credits?.cast ?? []).map((item) => ({
-      id: item.id,
-      mediaType: 'movie' as const,
-      title: item.title ?? item.original_title ?? 'Без назви',
-      originalTitle: item.original_title ?? item.title ?? 'Без назви',
-      year: (item.release_date ?? '').slice(0, 4),
-      poster: makeImageUrl(item.poster_path ?? null),
-      character: item.character ?? '—',
-      voteAverage: item.vote_average ?? 0,
-      voteCount: item.vote_count ?? 0
-    }));
-
-    const tvCredits = (data.tv_credits?.cast ?? []).map((item) => ({
-      id: item.id,
-      mediaType: 'tv' as const,
-      title: item.name ?? item.original_name ?? 'Без назви',
-      originalTitle: item.original_name ?? item.name ?? 'Без назви',
-      year: (item.first_air_date ?? '').slice(0, 4),
-      poster: makeImageUrl(item.poster_path ?? null),
-      character: item.character ?? '—',
-      voteAverage: item.vote_average ?? 0,
-      voteCount: item.vote_count ?? 0
-    }));
-
-    const credits = sortCredits([...movieCredits, ...tvCredits])
-      .slice(0, 40)
-      .map(({ voteCount, ...credit }) => credit);
+    const credits = collectCredits(data);
 
     const payload: ActorDetails = {
       id: data.id,

@@ -93,8 +93,34 @@ export const person = {
       originalTitle: 'The Matrix',
       year: '1999',
       poster: null,
+      role: 'cast',
       character: 'Нео',
-      voteAverage: 8.2
+      voteAverage: 8.2,
+      voteCount: 25000
+    },
+    {
+      id: 155,
+      mediaType: 'movie',
+      title: 'Джон Вік',
+      originalTitle: 'John Wick',
+      year: '2014',
+      poster: null,
+      role: 'cast',
+      character: 'Джон Вік',
+      voteAverage: 7.4,
+      voteCount: 19000
+    },
+    {
+      id: 900,
+      mediaType: 'movie',
+      title: 'Людина Ци',
+      originalTitle: 'Man of Tai Chi',
+      year: '2013',
+      poster: null,
+      role: 'directing',
+      character: 'Director',
+      voteAverage: 6.1,
+      voteCount: 700
     }
   ]
 };

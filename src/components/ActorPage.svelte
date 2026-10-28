@@ -4,22 +4,48 @@
   import { localeMode } from '../lib/preferences';
   import { tr } from '../lib/i18n';
   import { POSTER_SIZES, posterSrcset, profileSrcset } from '../lib/images';
-  import type { ActorDetails } from '../lib/types';
+  import type { ActorDetails, CreditRole } from '../lib/types';
+  import {
+    countByRole,
+    CREDIT_ROLES,
+    jobLabel,
+    sortCredits,
+    type CreditSort
+  } from '../lib/filmography';
 
   export let id: number;
 
   // Biographies can be very long; show a preview until expanded.
   const BIO_PREVIEW_CHARS = 420;
+  const CREDITS_PAGE = 30;
+
+  const ROLE_LABELS: Record<CreditRole, [string, string]> = {
+    cast: ['Ролі', 'Acting'],
+    directing: ['Режисура', 'Directing'],
+    writing: ['Сценарії', 'Writing'],
+    production: ['Продюсування', 'Production']
+  };
 
   let actor: ActorDetails | null = null;
   let loading = true;
   let error = '';
   let bioExpanded = false;
   let loadedLocale = '';
+  let role: CreditRole | 'all' = 'all';
+  let sort: CreditSort = 'popular';
+  let shown = CREDITS_PAGE;
 
   $: locale = $localeMode;
   $: bio = actor?.biography ?? '';
   $: bioIsLong = bio.length > BIO_PREVIEW_CHARS;
+  $: roleCounts = countByRole(actor?.credits ?? []);
+  $: availableRoles = CREDIT_ROLES.filter((item) => roleCounts[item]);
+  $: filteredCredits = sortCredits(
+    (actor?.credits ?? []).filter((credit) => role === 'all' || credit.role === role),
+    sort
+  );
+  $: visibleCredits = filteredCredits.slice(0, shown);
+  $: (role, sort, (shown = CREDITS_PAGE));
   $: bioText = bioExpanded || !bioIsLong ? bio : `${bio.slice(0, BIO_PREVIEW_CHARS).trimEnd()}…`;
 
   async function loadActor() {
@@ -67,7 +93,18 @@
 </script>
 
 <main class="page">
-  <button type="button" class="btn back" on:click={goBack}>← {tr(locale, 'Назад', 'Back')}</button>
+  <div class="top">
+    <button
+      type="button"
+      class="round-btn"
+      on:click={goBack}
+      aria-label={tr(locale, 'Назад', 'Back')}
+    >
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"
+        ><path d="M15 5l-7 7 7 7" /></svg
+      >
+    </button>
+  </div>
 
   {#if loading}
     <div class="skeleton" style="height: 220px"></div>
@@ -107,7 +144,7 @@
           {/if}
           {#if actor.knownForDepartment && actor.knownForDepartment !== 'Невідомо'}
             <dt>{tr(locale, 'Відомий за', 'Known for')}</dt>
-            <dd>{actor.knownForDepartment}</dd>
+            <dd>{jobLabel(actor.knownForDepartment, locale)}</dd>
           {/if}
         </dl>
         {#if actor.imdbId}
@@ -137,8 +174,41 @@
       {#if actor.credits.length === 0}
         <p class="hint">{tr(locale, 'Ролі поки відсутні.', 'No credits yet.')}</p>
       {:else}
+        <div class="credit-controls">
+          {#if availableRoles.length > 1}
+            <div class="chips" role="group" aria-label={tr(locale, 'Роль', 'Role')}>
+              <button
+                type="button"
+                class="chip"
+                aria-pressed={role === 'all'}
+                on:click={() => (role = 'all')}
+              >
+                {tr(locale, 'Усе', 'All')}
+              </button>
+              {#each availableRoles as item (item)}
+                <button
+                  type="button"
+                  class="chip"
+                  aria-pressed={role === item}
+                  on:click={() => (role = item)}
+                >
+                  {tr(locale, ...ROLE_LABELS[item])} <span class="count">{roleCounts[item]}</span>
+                </button>
+              {/each}
+            </div>
+          {/if}
+          <label class="sort">
+            <span class="visually-hidden">{tr(locale, 'Сортування', 'Sorting')}</span>
+            <select class="input" bind:value={sort}>
+              <option value="popular">{tr(locale, 'Найвідоміші', 'Best known')}</option>
+              <option value="rating">{tr(locale, 'Найвищий рейтинг', 'Top rated')}</option>
+              <option value="newest">{tr(locale, 'Новіші', 'Newest')}</option>
+              <option value="oldest">{tr(locale, 'Старіші', 'Oldest')}</option>
+            </select>
+          </label>
+        </div>
         <div class="credits">
-          {#each actor.credits as credit (`${credit.mediaType}-${credit.id}-${credit.character}`)}
+          {#each visibleCredits as credit (`${credit.mediaType}-${credit.id}-${credit.role}`)}
             <a class="credit" href={`/details/${credit.mediaType}/${credit.id}`}>
               <img
                 src={credit.poster ?? '/fallback-poster.svg'}
@@ -155,20 +225,60 @@
                     >★ {credit.voteAverage.toFixed(1)}</span
                   >{/if}
               </small>
-              {#if credit.character && credit.character !== '—'}
-                <small class="role">{credit.character}</small>
+              {#if credit.character}
+                <small class="role"
+                  >{credit.role === 'cast'
+                    ? credit.character
+                    : jobLabel(credit.character, locale)}</small
+                >
               {/if}
             </a>
           {/each}
         </div>
+        {#if filteredCredits.length > shown}
+          <button type="button" class="btn more" on:click={() => (shown += CREDITS_PAGE)}>
+            {tr(locale, 'Показати ще', 'Show more')} ({filteredCredits.length - shown})
+          </button>
+        {/if}
       {/if}
     </section>
   {/if}
 </main>
 
 <style>
-  .back {
-    justify-self: start;
+  .top {
+    display: flex;
+  }
+
+  .top .round-btn {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+
+  .credit-controls {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .credit-controls .chips {
+    margin: 0;
+    padding: 0;
+  }
+
+  .count {
+    opacity: 0.7;
+    font-weight: 500;
+  }
+
+  .sort .input {
+    width: auto;
+    min-width: 200px;
+  }
+
+  .more {
+    margin-top: 12px;
+    width: 100%;
   }
 
   .profile {
