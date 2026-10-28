@@ -4,12 +4,16 @@
   import type { ReleaseInfo } from '../lib/releaseStatus';
   import { seriesStatusLabel, type SeriesInfo } from '../lib/series';
 
-  export let release: ReleaseInfo | null | undefined;
-  /** Series: shown when there is no release badge (i.e. the series has premiered). */
-  export let series: SeriesInfo | null | undefined = null;
-  export let locale: LocaleMode;
-  /** Long form adds the expected home release date for titles in cinemas. */
-  export let long = false;
+  interface Props {
+    release: ReleaseInfo | null | undefined;
+    /** Series: shown when there is no release badge (i.e. the series has premiered). */
+    series?: SeriesInfo | null | undefined;
+    locale: LocaleMode;
+    /** Long form adds the expected home release date for titles in cinemas. */
+    long?: boolean;
+  }
+
+  let { release, series = null, locale, long = false }: Props = $props();
 
   function formatDate(value: string): string {
     const date = new Date(`${value}T00:00:00Z`);
@@ -22,27 +26,31 @@
     });
   }
 
-  $: label = !release
-    ? ''
-    : release.status === 'online'
-      ? tr(locale, 'Онлайн', 'Streaming')
-      : release.status === 'cinema'
-        ? long && release.date
-          ? trf(locale, 'У кіно · онлайн з {date}', 'In cinemas · streaming {date}', {
-              date: formatDate(release.date)
-            })
-          : tr(locale, 'У кіно', 'In cinemas')
-        : release.date
-          ? trf(locale, 'Анонс · {date}', 'Coming {date}', { date: formatDate(release.date) })
-          : tr(locale, 'Анонс', 'Coming soon');
+  let label = $derived(
+    !release
+      ? ''
+      : release.status === 'online'
+        ? tr(locale, 'Онлайн', 'Streaming')
+        : release.status === 'cinema'
+          ? long && release.date
+            ? trf(locale, 'У кіно · онлайн з {date}', 'In cinemas · streaming {date}', {
+                date: formatDate(release.date)
+              })
+            : tr(locale, 'У кіно', 'In cinemas')
+          : release.date
+            ? trf(locale, 'Анонс · {date}', 'Coming {date}', { date: formatDate(release.date) })
+            : tr(locale, 'Анонс', 'Coming soon')
+  );
 
-  $: hint = !release
-    ? ''
-    : release.status === 'online'
-      ? tr(locale, 'Можна подивитися вдома', 'Available to watch at home')
-      : release.status === 'cinema'
-        ? tr(locale, 'Поки лише в кінотеатрах', 'Only in cinemas for now')
-        : tr(locale, 'Ще не вийшов', 'Not released yet');
+  let hint = $derived(
+    !release
+      ? ''
+      : release.status === 'online'
+        ? tr(locale, 'Можна подивитися вдома', 'Available to watch at home')
+        : release.status === 'cinema'
+          ? tr(locale, 'Поки лише в кінотеатрах', 'Only in cinemas for now')
+          : tr(locale, 'Ще не вийшов', 'Not released yet')
+  );
 </script>
 
 {#if release}

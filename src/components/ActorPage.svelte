@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import { get } from 'svelte/store';
   import { localeMode } from '../lib/preferences';
   import { tr } from '../lib/i18n';
@@ -14,7 +14,11 @@
     type CreditSort
   } from '../lib/filmography';
 
-  export let id: number;
+  interface Props {
+    id: number;
+  }
+
+  let { id }: Props = $props();
 
   // Biographies can be very long; show a preview until expanded.
   const BIO_PREVIEW_CHARS = 420;
@@ -27,25 +31,14 @@
     production: ['Продюсування', 'Production']
   };
 
-  let actor: ActorDetails | null = null;
-  let loading = true;
-  let error = '';
-  let bioExpanded = false;
-  let loadedLocale = '';
-  let role: CreditRole | 'all' = 'all';
-  let sort: CreditSort = 'popular';
-  let shown = CREDITS_PAGE;
-
-  $: locale = $localeMode;
-  $: bio = actor?.biography ?? '';
-  $: bioIsLong = bio.length > BIO_PREVIEW_CHARS;
-  $: roleCounts = countByRole(actor?.credits ?? []);
-  $: availableRoles = CREDIT_ROLES.filter((item) => roleCounts[item]);
-  $: filteredCredits = sortCredits(creditsForRole(actor?.credits ?? [], role), sort);
-  $: visibleCredits = filteredCredits.slice(0, shown);
-  // A new role or sort starts again from the first page.
-  $: resetShown(role, sort);
-  $: bioText = bioExpanded || !bioIsLong ? bio : `${bio.slice(0, BIO_PREVIEW_CHARS).trimEnd()}…`;
+  let actor: ActorDetails | null = $state(null);
+  let loading = $state(true);
+  let error = $state('');
+  let bioExpanded = $state(false);
+  let loadedLocale = $state('');
+  let role: CreditRole | 'all' = $state('all');
+  let sort: CreditSort = $state('popular');
+  let shown = $state(CREDITS_PAGE);
 
   async function loadActor() {
     loading = true;
@@ -86,13 +79,29 @@
     void loadActor();
   });
 
-  $: if (loadedLocale && $localeMode !== loadedLocale && !loading) {
-    void loadActor();
-  }
-
   function resetShown(..._dependencies: unknown[]) {
     shown = CREDITS_PAGE;
   }
+  let locale = $derived($localeMode);
+  let bio = $derived(actor?.biography ?? '');
+  let bioIsLong = $derived(bio.length > BIO_PREVIEW_CHARS);
+  let roleCounts = $derived(countByRole(actor?.credits ?? []));
+  let availableRoles = $derived(CREDIT_ROLES.filter((item) => roleCounts[item]));
+  let filteredCredits = $derived(sortCredits(creditsForRole(actor?.credits ?? [], role), sort));
+  let visibleCredits = $derived(filteredCredits.slice(0, shown));
+  // A new role or sort starts again from the first page.
+  $effect(() => {
+    resetShown(role, sort);
+  });
+  let bioText = $derived(
+    bioExpanded || !bioIsLong ? bio : `${bio.slice(0, BIO_PREVIEW_CHARS).trimEnd()}…`
+  );
+  // Reload in the new language; the load itself must not become a dependency.
+  $effect(() => {
+    if (loadedLocale && $localeMode !== loadedLocale && !loading) {
+      untrack(() => void loadActor());
+    }
+  });
 </script>
 
 <main class="page">
@@ -100,7 +109,7 @@
     <button
       type="button"
       class="round-btn"
-      on:click={goBack}
+      onclick={goBack}
       aria-label={tr(locale, 'Назад', 'Back')}
     >
       <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"
@@ -114,7 +123,7 @@
   {:else if error || !actor}
     <div class="panel">
       <p class="error">{error || tr(locale, 'Актора не знайдено', 'Person not found')}</p>
-      <button type="button" class="btn" on:click={loadActor}
+      <button type="button" class="btn" onclick={loadActor}
         >{tr(locale, 'Спробувати знову', 'Try again')}</button
       >
     </div>
@@ -163,7 +172,7 @@
         <h2 class="section-title">{tr(locale, 'Біографія', 'Biography')}</h2>
         <p class="bio">{bioText}</p>
         {#if bioIsLong}
-          <button type="button" class="link-btn" on:click={() => (bioExpanded = !bioExpanded)}>
+          <button type="button" class="link-btn" onclick={() => (bioExpanded = !bioExpanded)}>
             {bioExpanded
               ? tr(locale, 'Згорнути', 'Show less')
               : tr(locale, 'Читати далі', 'Read more')}
@@ -184,7 +193,7 @@
                 type="button"
                 class="chip"
                 aria-pressed={role === 'all'}
-                on:click={() => (role = 'all')}
+                onclick={() => (role = 'all')}
               >
                 {tr(locale, 'Усе', 'All')}
               </button>
@@ -193,7 +202,7 @@
                   type="button"
                   class="chip"
                   aria-pressed={role === item}
-                  on:click={() => (role = item)}
+                  onclick={() => (role = item)}
                 >
                   {tr(locale, ...ROLE_LABELS[item])} <span class="count">{roleCounts[item]}</span>
                 </button>
@@ -239,7 +248,7 @@
           {/each}
         </div>
         {#if filteredCredits.length > shown}
-          <button type="button" class="btn more" on:click={() => (shown += CREDITS_PAGE)}>
+          <button type="button" class="btn more" onclick={() => (shown += CREDITS_PAGE)}>
             {tr(locale, 'Показати ще', 'Show more')} ({filteredCredits.length - shown})
           </button>
         {/if}

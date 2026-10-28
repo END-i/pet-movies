@@ -36,16 +36,6 @@ export default [
     }
   },
   {
-    files: ['**/*.svelte'],
-    rules: {
-      // Components still use legacy `$:` statements (runes migration is in docs/ROADMAP.md, section 6);
-      // these rules misread its guarded reload blocks. Local Date/Map/URLSearchParams are not state.
-      'svelte/infinite-reactive-loop': 'off',
-      'svelte/prefer-svelte-reactivity': 'off',
-      'no-useless-assignment': 'off'
-    }
-  },
-  {
     rules: {
       // `_name` marks a value that is unused on purpose (e.g. destructured away).
       '@typescript-eslint/no-unused-vars': [

@@ -201,10 +201,11 @@
 
 ## 6. Технічний борг
 
-- [ ] Svelte 5 зі старим синтаксисом (`export let`, `$:`) → runes.
+- [x] Svelte 5 зі старим синтаксисом (`export let`, `$:`) → runes.
+  - Зроблено (28.10): `migrate()` із `svelte/compiler` для всіх компонентів (`$props`, `$state`, `$derived`), заглушки `run()`/`preventDefault()` із `svelte/legacy` замінено на `$effect` (перезавантаження за мовою — через `untrack`) і звичайні обробники. Правила ESLint для Svelte знову ввімкнено.
 - [ ] `CatalogPage.svelte` (~700 рядків): винести пресети, стан фільтрів і синхронізацію з URL у `src/lib`.
 - [x] Немає ESLint-конфігу, хоча залежності встановлено (`eslint`, `eslint-plugin-svelte`…) — додати конфіг за прикладом cards або прибрати залежності.
-  - Зроблено (28.10): `eslint.config.js` (JS + TypeScript + Svelte + Prettier), `npm run lint`, входить у `npm run ci`. `.astro` перевіряє `astro check`. Для Svelte вимкнено три правила, що хибно спрацьовують на старому `$:` — повернути після переходу на runes.
+  - Зроблено (28.10): `eslint.config.js` (JS + TypeScript + Svelte + Prettier), `npm run lint`, входить у `npm run ci`. `.astro` перевіряє `astro check`. Правила для старого `$:` після переходу на runes знову ввімкнено (28.10).
 - [ ] E2E на dev-сервері (SW вимкнений) — додати e2e на `build` з `context.setOffline(true)`.
 - [ ] Немає компонентних тестів.
 - [ ] Типи відповідей TMDB описані вручну в кожному роуті — винести в `src/lib/tmdb-types.ts`.

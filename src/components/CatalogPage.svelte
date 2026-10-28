@@ -1,7 +1,7 @@
 <script lang="ts">
   import { PUBLIC_DEBUG_LOGS } from 'astro:env/client';
   import { get } from 'svelte/store';
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import MovieCard from './MovieCard.svelte';
   import SearchSuggest from './SearchSuggest.svelte';
   import EmptyState from './EmptyState.svelte';
@@ -111,60 +111,63 @@
   const formatDate = (value: Date) => value.toISOString().slice(0, 10);
 
   const today = new Date();
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- computed once, not state
   const recentStart = new Date(today);
   recentStart.setDate(today.getDate() - RECENT_RELEASE_DAYS);
 
-  let category: Category = 'all';
-  let genre = '';
-  let minRating = '';
-  let minVotes = DEFAULT_MIN_VOTES;
-  let year = '';
+  let category: Category = $state('all');
+  let genre = $state('');
+  let minRating = $state('');
+  let minVotes = $state(DEFAULT_MIN_VOTES);
+  let year = $state('');
   // Popular recent titles make a better first screen than raw newest releases (mostly unrated).
-  let sortBy = 'popularity.desc';
-  let query = '';
-  let includeCountry = '';
-  let ageRating = '';
-  let releaseDateGte = formatDate(recentStart);
-  let releaseDateLte = formatDate(today);
-  let releasePeriod: ReleasePeriod = '120';
-  let limit = '20';
-  let preset: FilterPreset = '';
+  let sortBy = $state('popularity.desc');
+  let query = $state('');
+  let includeCountry = $state('');
+  let ageRating = $state('');
+  let releaseDateGte = $state(formatDate(recentStart));
+  let releaseDateLte = $state(formatDate(today));
+  let releasePeriod: ReleasePeriod = $state('120');
+  let limit = $state('20');
+  let preset: FilterPreset = $state('');
 
-  let results: CatalogItem[] = [];
-  let page = 1;
-  let totalPages = 0;
-  let totalResults = 0;
-  let loading = false;
-  let error = '';
-  let loadedOnce = false;
-  let showFilters = false;
-  let showScrollTop = false;
-  let appliedLocale = get(localeMode);
+  let results: CatalogItem[] = $state([]);
+  let page = $state(1);
+  let totalPages = $state(0);
+  let totalResults = $state(0);
+  let loading = $state(false);
+  let error = $state('');
+  let loadedOnce = $state(false);
+  let showFilters = $state(false);
+  let showScrollTop = $state(false);
+  let appliedLocale = $state(get(localeMode));
   let requestId = 0;
-  let resultsAnchor: HTMLElement | null = null;
+  let resultsAnchor: HTMLElement | null = $state(null);
   // Phones load the next page on scroll instead of paginating; `firstPage` is where the list starts.
-  let phone = false;
-  let firstPage = 1;
-  let appending = false;
-  let people: PersonSummary[] = [];
+  let phone = $state(false);
+  let firstPage = $state(1);
+  let appending = $state(false);
+  let people: PersonSummary[] = $state([]);
   let peopleKey = '';
-  let suggest: SearchSuggest;
-  let suggestOpen = false;
-  let suggestActive = -1;
+  let suggest: SearchSuggest = $state();
+  let suggestOpen = $state(false);
+  let suggestActive = $state(-1);
 
-  $: genreOptions = category === 'tv' ? tvGenres : movieGenres;
-  $: paginationTokens = buildPaginationTokens(page, totalPages);
-  $: activeFilterCount = [
-    genre,
-    minRating,
-    minVotes !== DEFAULT_MIN_VOTES ? minVotes : '',
-    year,
-    includeCountry,
-    ageRating,
-    releasePeriod !== 'all' ? releasePeriod : '',
-    $hiddenGenres.length ? 'hidden' : ''
-  ].filter(Boolean).length;
-  $: locale = $localeMode;
+  let genreOptions = $derived(category === 'tv' ? tvGenres : movieGenres);
+  let paginationTokens = $derived(buildPaginationTokens(page, totalPages));
+  let activeFilterCount = $derived(
+    [
+      genre,
+      minRating,
+      minVotes !== DEFAULT_MIN_VOTES ? minVotes : '',
+      year,
+      includeCountry,
+      ageRating,
+      releasePeriod !== 'all' ? releasePeriod : '',
+      $hiddenGenres.length ? 'hidden' : ''
+    ].filter(Boolean).length
+  );
+  let locale = $derived($localeMode);
 
   function resetResults() {
     results = [];
@@ -257,6 +260,7 @@
 
   function setPeriod(days: number) {
     const end = new Date();
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local value, not component state
     const start = new Date(end);
     start.setDate(end.getDate() - days);
     releaseDateGte = formatDate(start);
@@ -274,6 +278,7 @@
   }
 
   function buildParams(nextPage: number) {
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local value, not component state
     const params = new URLSearchParams();
     params.set('category', category);
     params.set('page', String(nextPage));
@@ -476,7 +481,7 @@
     resultsAnchor?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  $: canLoadMore = phone && loadedOnce && !error && page < totalPages;
+  let canLoadMore = $derived(phone && loadedOnce && !error && page < totalPages);
 
   function loadMore() {
     if (loading || !canLoadMore) return;
@@ -525,25 +530,36 @@
     };
   });
 
-  $: if ($localeMode !== appliedLocale) {
-    appliedLocale = $localeMode;
-    if (loadedOnce && category) {
-      // On phones the list may hold several pages; reload it from its first one.
-      void fetchData(phone ? firstPage : page);
+  $effect(() => {
+    if ($localeMode !== appliedLocale) {
+      appliedLocale = $localeMode;
+      untrack(() => {
+        if (loadedOnce && category) {
+          // On phones the list may hold several pages; reload it from its first one.
+          void fetchData(phone ? firstPage : page);
+        }
+      });
     }
-  }
+  });
 
-  $: if (typeof document !== 'undefined') {
+  $effect(() => {
     document.body.style.overflow = showFilters ? 'hidden' : '';
-  }
+  });
 </script>
 
-<svelte:window on:keydown={onKeydown} />
+<svelte:window onkeydown={onKeydown} />
 
 <main class="page catalog">
   <h1 class="page-title">{tr(locale, 'Що подивитися?', 'What to watch?')}</h1>
 
-  <form class="search" role="search" on:submit|preventDefault={onSearchSubmit}>
+  <form
+    class="search"
+    role="search"
+    onsubmit={(event) => {
+      event.preventDefault();
+      void onSearchSubmit();
+    }}
+  >
     <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
       <path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14ZM20 20l-3.5-3.5" />
     </svg>
@@ -562,10 +578,10 @@
       aria-controls="search-suggest"
       aria-expanded={suggestOpen}
       aria-activedescendant={suggestActive >= 0 ? suggest?.optionId(suggestActive) : undefined}
-      on:input={() => (suggestOpen = true)}
-      on:focus={() => (suggestOpen = true)}
-      on:blur={() => (suggestOpen = false)}
-      on:keydown={onSearchKeydown}
+      oninput={() => (suggestOpen = true)}
+      onfocus={() => (suggestOpen = true)}
+      onblur={() => (suggestOpen = false)}
+      onkeydown={onSearchKeydown}
     />
     <SearchSuggest
       bind:this={suggest}
@@ -577,7 +593,7 @@
     <button
       type="button"
       class="filters-btn"
-      on:click={() => (showFilters = true)}
+      onclick={() => (showFilters = true)}
       aria-label={tr(locale, 'Фільтри', 'Filters')}
       aria-haspopup="dialog"
     >
@@ -596,7 +612,7 @@
         type="button"
         class="chip"
         aria-pressed={category === option.value}
-        on:click={() => selectCategory(option.value)}
+        onclick={() => selectCategory(option.value)}
         disabled={loading && category === option.value}
       >
         {tr(locale, option.uk, option.en)}
@@ -610,7 +626,7 @@
         type="button"
         class="chip"
         aria-pressed={preset === option.value}
-        on:click={() => applyPreset(option.value)}
+        onclick={() => applyPreset(option.value)}
       >
         {tr(locale, option.uk, option.en)}
       </button>
@@ -650,7 +666,7 @@
   {#if error}
     <div class="panel state">
       <p class="error">{error}</p>
-      <button type="button" class="btn" on:click={() => fetchData(page)}>
+      <button type="button" class="btn" onclick={() => fetchData(page)}>
         {tr(locale, 'Спробувати знову', 'Try again')}
       </button>
     </div>
@@ -670,7 +686,7 @@
           'No matches for current filters.'
         )}
       </p>
-      <button type="button" class="btn" on:click={resetFilters}>
+      <button type="button" class="btn" onclick={resetFilters}>
         {tr(locale, 'Скинути фільтри', 'Reset filters')}
       </button>
     </div>
@@ -694,7 +710,7 @@
              the sentinel may still be in view. -->
         {#key page}
           <div class="load-more" use:observeSentinel>
-            <button type="button" class="btn" on:click={loadMore} disabled={loading}>
+            <button type="button" class="btn" onclick={loadMore} disabled={loading}>
               {loading ? '…' : tr(locale, 'Показати ще', 'Show more')}
             </button>
           </div>
@@ -705,7 +721,7 @@
         <button
           type="button"
           class="btn"
-          on:click={() => goToPage(page - 1)}
+          onclick={() => goToPage(page - 1)}
           disabled={loading || page <= 1}
           aria-label={tr(locale, 'Попередня сторінка', 'Previous page')}
         >
@@ -723,7 +739,7 @@
                 type="button"
                 class="btn page-btn"
                 class:btn-primary={token === page}
-                on:click={() => goToPage(token)}
+                onclick={() => goToPage(token)}
                 disabled={loading}
                 aria-current={token === page ? 'page' : undefined}
               >
@@ -736,7 +752,7 @@
         <button
           type="button"
           class="btn"
-          on:click={() => goToPage(page + 1)}
+          onclick={() => goToPage(page + 1)}
           disabled={loading || page >= totalPages}
           aria-label={tr(locale, 'Наступна сторінка', 'Next page')}
         >
@@ -750,7 +766,7 @@
     <button
       type="button"
       class="scroll-top"
-      on:click={scrollToTop}
+      onclick={scrollToTop}
       aria-label={tr(locale, 'Прокрутити вгору', 'Scroll to top')}
     >
       ↑
@@ -763,7 +779,7 @@
     type="button"
     class="sheet-backdrop"
     aria-label={tr(locale, 'Закрити фільтри', 'Close filters')}
-    on:click={() => (showFilters = false)}
+    onclick={() => (showFilters = false)}
   ></button>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="filters-title">
     <header class="sheet-head">
@@ -771,14 +787,21 @@
       <button
         type="button"
         class="btn btn-icon"
-        on:click={() => (showFilters = false)}
+        onclick={() => (showFilters = false)}
         aria-label={tr(locale, 'Закрити', 'Close')}
       >
         ✕
       </button>
     </header>
 
-    <form id="filters-form" class="filters" on:submit|preventDefault={onFiltersSubmit}>
+    <form
+      id="filters-form"
+      class="filters"
+      onsubmit={(event) => {
+        event.preventDefault();
+        void onFiltersSubmit();
+      }}
+    >
       <label>
         {tr(locale, 'Категорія', 'Category')}
         <select class="input" bind:value={category}>
@@ -809,7 +832,7 @@
 
       <label>
         {tr(locale, 'Період релізу', 'Release period')}
-        <select class="input" bind:value={releasePeriod} on:change={onReleasePeriodChange}>
+        <select class="input" bind:value={releasePeriod} onchange={onReleasePeriodChange}>
           <option value="all">{tr(locale, 'За всі часи', 'All time')}</option>
           <option value="7">{tr(locale, 'Останні 7 днів', 'Last 7 days')}</option>
           <option value="30">{tr(locale, 'Останні 30 днів', 'Last 30 days')}</option>
@@ -928,7 +951,7 @@
               type="button"
               class="chip"
               aria-pressed={$hiddenGenres.includes(item.key)}
-              on:click={() => toggleHiddenGenre(item.key)}
+              onclick={() => toggleHiddenGenre(item.key)}
             >
               {tr(locale, item.uk, item.en)}
             </button>
@@ -941,7 +964,7 @@
     </form>
 
     <footer class="sheet-actions">
-      <button type="button" class="btn" on:click={resetFilters}>
+      <button type="button" class="btn" onclick={resetFilters}>
         {tr(locale, 'Скинути', 'Reset')}
       </button>
       <button type="submit" form="filters-form" class="btn btn-primary" disabled={loading}>

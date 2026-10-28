@@ -27,27 +27,16 @@
 
   type DisplayEntry = { category: string; item: FavoriteEntry };
 
-  let store: FavoritesStore = {};
-  let categories: string[] = [];
-  let selectedCategory = '';
-  let newCategory = '';
-  let hydrated = false;
-  let sort: FavoritesSort = 'added';
-  let hideWatched = false;
-  let backupMessage = '';
-  let backupError = false;
-  let importInput: HTMLInputElement;
-
-  $: locale = $localeMode;
-  $: total = countFavorites(store);
-  $: displayEntries = sortFavorites(
-    buildEntries(store, categories, selectedCategory).filter(
-      (entry) => !hideWatched || !entry.item.watched
-    ),
-    sort,
-    intlLocale(locale)
-  );
-  $: otherCategories = categories.filter((category) => category !== selectedCategory);
+  let store: FavoritesStore = $state({});
+  let categories: string[] = $state([]);
+  let selectedCategory = $state('');
+  let newCategory = $state('');
+  let hydrated = $state(false);
+  let sort: FavoritesSort = $state('added');
+  let hideWatched = $state(false);
+  let backupMessage = $state('');
+  let backupError = $state(false);
+  let importInput: HTMLInputElement = $state();
 
   function buildEntries(
     current: FavoritesStore,
@@ -59,6 +48,7 @@
     }
 
     // "All" view: show each title once, with every category it belongs to.
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local value, not component state
     const seen = new Map<string, DisplayEntry & { categories: string[] }>();
     for (const category of allCategories) {
       for (const item of current[category] ?? []) {
@@ -197,6 +187,18 @@
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   });
+  let locale = $derived($localeMode);
+  let total = $derived(countFavorites(store));
+  let displayEntries = $derived(
+    sortFavorites(
+      buildEntries(store, categories, selectedCategory).filter(
+        (entry) => !hideWatched || !entry.item.watched
+      ),
+      sort,
+      intlLocale(locale)
+    )
+  );
+  let otherCategories = $derived(categories.filter((category) => category !== selectedCategory));
 </script>
 
 <main class="page">
@@ -207,7 +209,7 @@
       <button
         type="button"
         class="btn btn-icon rename-category"
-        on:click={renameSelectedCategory}
+        onclick={renameSelectedCategory}
         aria-label={trf(locale, 'Перейменувати категорію «{name}»', 'Rename category “{name}”', {
           name: selectedCategory
         })}
@@ -219,7 +221,7 @@
       <button
         type="button"
         class="btn btn-icon delete-category"
-        on:click={removeSelectedCategory}
+        onclick={removeSelectedCategory}
         aria-label={trf(locale, 'Видалити категорію «{name}»', 'Delete category “{name}”', {
           name: selectedCategory
         })}
@@ -238,7 +240,7 @@
       type="button"
       class="chip"
       aria-pressed={selectedCategory === ''}
-      on:click={() => (selectedCategory = '')}
+      onclick={() => (selectedCategory = '')}
     >
       {tr(locale, 'Усі', 'All')}
     </button>
@@ -247,14 +249,20 @@
         type="button"
         class="chip"
         aria-pressed={selectedCategory === category}
-        on:click={() => (selectedCategory = category)}
+        onclick={() => (selectedCategory = category)}
       >
         {category} <span class="chip-count">{store[category]?.length ?? 0}</span>
       </button>
     {/each}
   </div>
 
-  <form class="new-category" on:submit|preventDefault={createCategory}>
+  <form
+    class="new-category"
+    onsubmit={(event) => {
+      event.preventDefault();
+      createCategory();
+    }}
+  >
     <input
       class="input"
       type="text"
@@ -289,7 +297,7 @@
         type="button"
         class="chip"
         aria-pressed={hideWatched}
-        on:click={() => (hideWatched = !hideWatched)}
+        onclick={() => (hideWatched = !hideWatched)}
       >
         {tr(locale, 'Сховати переглянуті', 'Hide watched')}
       </button>
@@ -356,7 +364,7 @@
                     title: entry.item.title
                   })}
                 </span>
-                <select class="input" on:change={(event) => moveItem(entry, event)}>
+                <select class="input" onchange={(event) => moveItem(entry, event)}>
                   <option value="">{tr(locale, 'Перемістити до…', 'Move to…')}</option>
                   {#each otherCategories as category (category)}
                     <option value={category}>{category}</option>
@@ -369,7 +377,7 @@
             type="button"
             class="btn btn-icon watched-toggle"
             aria-pressed={!!entry.item.watched}
-            on:click={() => toggleWatched(entry)}
+            onclick={() => toggleWatched(entry)}
             aria-label={trf(locale, 'Переглянуто: «{title}»', 'Watched: “{title}”', {
               title: entry.item.title
             })}
@@ -379,7 +387,7 @@
           <button
             type="button"
             class="btn btn-icon remove"
-            on:click={() => removeItem(entry)}
+            onclick={() => removeItem(entry)}
             aria-label={trf(locale, 'Видалити «{title}»', 'Remove “{title}”', {
               title: entry.item.title
             })}
@@ -401,10 +409,10 @@
       )}
     </p>
     <div class="backup-actions">
-      <button type="button" class="btn" on:click={exportFavorites} disabled={!hydrated || !total}>
+      <button type="button" class="btn" onclick={exportFavorites} disabled={!hydrated || !total}>
         {tr(locale, 'Експортувати', 'Export')}
       </button>
-      <button type="button" class="btn" on:click={() => importInput.click()} disabled={!hydrated}>
+      <button type="button" class="btn" onclick={() => importInput.click()} disabled={!hydrated}>
         {tr(locale, 'Імпортувати', 'Import')}
       </button>
       <input
@@ -414,7 +422,7 @@
         tabindex="-1"
         aria-label={tr(locale, 'Файл з улюбленими', 'Favorites file')}
         bind:this={importInput}
-        on:change={onImportFile}
+        onchange={onImportFile}
       />
     </div>
     {#if backupMessage}

@@ -1,6 +1,10 @@
 <script lang="ts">
-  /** Decorative picture above an empty-list message; the text stays in the parent. */
-  export let kind: 'favorites' | 'search';
+  interface Props {
+    /** Decorative picture above an empty-list message; the text stays in the parent. */
+    kind: 'favorites' | 'search';
+  }
+
+  let { kind }: Props = $props();
 </script>
 
 <svg class="empty-art" viewBox="0 0 120 96" width="120" height="96" aria-hidden="true">

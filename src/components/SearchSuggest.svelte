@@ -4,22 +4,30 @@
   import type { LocaleMode } from '../lib/preferences';
   import { SUGGEST_MIN_CHARS, suggestionHref, type Suggestion } from '../lib/suggest';
 
-  /** Text typed in the search field (bound by the catalog). */
-  export let query: string;
-  export let locale: LocaleMode;
-  /** id of the listbox, referenced by the input's `aria-controls`. */
-  export let id = 'search-suggest';
-  export let open = false;
-  /** Index of the highlighted option, -1 for none (the input's `aria-activedescendant`). */
-  export let active = -1;
+  interface Props {
+    /** Text typed in the search field (bound by the catalog). */
+    query: string;
+    locale: LocaleMode;
+    /** id of the listbox, referenced by the input's `aria-controls`. */
+    id?: string;
+    open?: boolean;
+    /** Index of the highlighted option, -1 for none (the input's `aria-activedescendant`). */
+    active?: number;
+  }
+
+  let {
+    query,
+    locale,
+    id = 'search-suggest',
+    open = $bindable(false),
+    active = $bindable(-1)
+  }: Props = $props();
 
   const DEBOUNCE_MS = 300;
 
-  let items: Suggestion[] = [];
+  let items: Suggestion[] = $state([]);
   let timer: ReturnType<typeof setTimeout> | undefined;
   let lastKey = '';
-
-  $: schedule(query, locale);
 
   function schedule(text: string, language: LocaleMode) {
     clearTimeout(timer);
@@ -84,6 +92,9 @@
   }
 
   onDestroy(() => clearTimeout(timer));
+  $effect(() => {
+    schedule(query, locale);
+  });
 </script>
 
 {#if open && items.length}
@@ -97,7 +108,7 @@
           id={optionId(index)}
           aria-selected={index === active}
           class:active={index === active}
-          on:mousedown|preventDefault
+          onmousedown={(event) => event.preventDefault()}
         >
           <img
             src={item.image ??

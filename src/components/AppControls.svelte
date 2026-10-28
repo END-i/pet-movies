@@ -11,7 +11,7 @@
     themeMode.set($themeMode === 'dark' ? 'light' : 'dark');
   }
 
-  $: badge = LOCALES.find((option) => option.code === $localeMode)?.badge ?? 'UA';
+  let badge = $derived(LOCALES.find((option) => option.code === $localeMode)?.badge ?? 'UA');
 </script>
 
 <header class="app-header">
@@ -33,7 +33,7 @@
       <button
         type="button"
         class="pill icon"
-        on:click={toggleTheme}
+        onclick={toggleTheme}
         aria-label={$themeMode === 'dark'
           ? tr($localeMode, 'Увімкнути світлу тему', 'Switch to light theme')
           : tr($localeMode, 'Увімкнути темну тему', 'Switch to dark theme')}

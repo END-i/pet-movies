@@ -1,6 +1,6 @@
 <script lang="ts">
   import { PUBLIC_DEBUG_LOGS } from 'astro:env/client';
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import { get } from 'svelte/store';
   import {
     addToFavorites,
@@ -31,22 +31,26 @@
 
   const CLIENT_DEBUG = PUBLIC_DEBUG_LOGS;
 
-  export let mediaType: 'movie' | 'tv';
-  export let id: number;
+  interface Props {
+    mediaType: 'movie' | 'tv';
+    id: number;
+  }
 
-  let details: MovieDetails | null = null;
-  let loading = true;
-  let error = '';
-  let categories: string[] = [];
-  let savedIn: string[] = [];
-  let newCategory = '';
-  let showTrailer = false;
-  let loadedLocale = '';
-  let similar: SimilarPayload | null = null;
+  let { mediaType, id }: Props = $props();
 
-  $: locale = $localeMode;
-  $: showOriginal = details?.originalTitle && details.originalTitle !== details.title;
-  $: dateLocale = intlLocale(locale);
+  let details: MovieDetails | null = $state(null);
+  let loading = $state(true);
+  let error = $state('');
+  let categories: string[] = $state([]);
+  let savedIn: string[] = $state([]);
+  let newCategory = $state('');
+  let showTrailer = $state(false);
+  let loadedLocale = $state('');
+  let similar: SimilarPayload | null = $state(null);
+
+  let locale = $derived($localeMode);
+  let showOriginal = $derived(details?.originalTitle && details.originalTitle !== details.title);
+  let dateLocale = $derived(intlLocale(locale));
 
   function formatDay(value: string): string {
     return new Date(`${value}T00:00:00Z`).toLocaleDateString(dateLocale, {
@@ -192,9 +196,12 @@
     void loadDetails();
   });
 
-  $: if (loadedLocale && $localeMode !== loadedLocale && !loading) {
-    void loadDetails();
-  }
+  // Reload in the new language; the load itself must not become a dependency.
+  $effect(() => {
+    if (loadedLocale && $localeMode !== loadedLocale && !loading) {
+      untrack(() => void loadDetails());
+    }
+  });
 </script>
 
 <main class="details-page">
@@ -203,12 +210,12 @@
     <div class="page"><div class="skeleton" style="height: 140px"></div></div>
   {:else if error || !details}
     <div class="page">
-      <button type="button" class="btn back-inline" on:click={goBack}
+      <button type="button" class="btn back-inline" onclick={goBack}
         >← {tr(locale, 'Назад', 'Back')}</button
       >
       <div class="panel">
         <p class="error">{error || tr(locale, 'Деталі не знайдено', 'Details not found')}</p>
-        <button type="button" class="btn" on:click={loadDetails}
+        <button type="button" class="btn" onclick={loadDetails}
           >{tr(locale, 'Спробувати знову', 'Try again')}</button
         >
       </div>
@@ -219,7 +226,7 @@
         <button
           type="button"
           class="round-btn"
-          on:click={goBack}
+          onclick={goBack}
           aria-label={tr(locale, 'Назад', 'Back')}
         >
           <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"
@@ -231,7 +238,7 @@
             type="button"
             class="round-btn heart"
             class:active={savedIn.length > 0}
-            on:click={toggleHeart}
+            onclick={toggleHeart}
             aria-pressed={savedIn.length > 0}
             aria-label={savedIn.length
               ? tr(locale, 'Прибрати з улюблених', 'Remove from favorites')
@@ -246,7 +253,7 @@
           <button
             type="button"
             class="round-btn"
-            on:click={share}
+            onclick={share}
             aria-label={tr(locale, 'Поділитися', 'Share')}
           >
             <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
@@ -442,13 +449,19 @@
               type="button"
               class="chip"
               aria-pressed={savedIn.includes(category)}
-              on:click={() => toggleCategory(category)}
+              onclick={() => toggleCategory(category)}
             >
               {savedIn.includes(category) ? '✓ ' : '+ '}{category}
             </button>
           {/each}
         </div>
-        <form class="new-category" on:submit|preventDefault={createCategory}>
+        <form
+          class="new-category"
+          onsubmit={(event) => {
+            event.preventDefault();
+            createCategory();
+          }}
+        >
           <input
             class="input"
             type="text"
@@ -486,7 +499,7 @@
                 type="button"
                 class="trailer-cover"
                 style={`background-image:url('https://i.ytimg.com/vi/${details.trailerKey}/hqdefault.jpg')`}
-                on:click={() => (showTrailer = true)}
+                onclick={() => (showTrailer = true)}
                 aria-label={tr(locale, 'Відтворити трейлер', 'Play trailer')}
               >
                 <span class="play">▶</span>

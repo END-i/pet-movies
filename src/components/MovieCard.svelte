@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import { isFavorite as isSaved, toggleFavorite as toggleSaved } from '../lib/favorites';
   import { localeMode, translationPreference } from '../lib/preferences';
   import {
@@ -13,20 +13,28 @@
   import ReleaseBadge from './ReleaseBadge.svelte';
   import { seasonsLabel } from '../lib/series';
 
-  export let item: CatalogItem;
+  interface Props {
+    item: CatalogItem;
+  }
+
+  let { item }: Props = $props();
 
   const FALLBACK_POSTER = '/fallback-poster.svg';
 
-  let posterFailed = false;
-  let isFavorite = false;
+  let posterFailed = $state(false);
+  let isFavorite = $state(false);
 
-  $: posterSrc = !posterFailed && item.poster ? item.poster : FALLBACK_POSTER;
-  $: href = `/details/${item.mediaType}/${item.id}`;
-  $: showOriginal = item.originalTitle && item.originalTitle !== item.title;
-  $: missing = lacksTranslation(item, $translationPreference)
-    ? translationLanguage($translationPreference)
-    : null;
-  $: meta = [item.year, item.countries.slice(0, 2).join(', ')].filter(Boolean).join(' · ');
+  let posterSrc = $derived(!posterFailed && item.poster ? item.poster : FALLBACK_POSTER);
+  let href = $derived(`/details/${item.mediaType}/${item.id}`);
+  let showOriginal = $derived(item.originalTitle && item.originalTitle !== item.title);
+  let missing = $derived(
+    lacksTranslation(item, $translationPreference)
+      ? translationLanguage($translationPreference)
+      : null
+  );
+  let meta = $derived(
+    [item.year, item.countries.slice(0, 2).join(', ')].filter(Boolean).join(' · ')
+  );
 
   function refreshFavoriteState() {
     isFavorite = isSaved(item.id, item.mediaType);
@@ -45,7 +53,9 @@
 
   onMount(refreshFavoriteState);
 
-  $: if (item) refreshFavoriteState();
+  $effect(() => {
+    if (item) untrack(refreshFavoriteState);
+  });
 </script>
 
 <article class="movie-card">
@@ -59,7 +69,7 @@
       decoding="async"
       width="342"
       height="513"
-      on:error={() => (posterFailed = true)}
+      onerror={() => (posterFailed = true)}
     />
     {#if item.mediaType === 'tv'}
       <span class="type-tag">{tr($localeMode, 'Серіал', 'TV')}</span>
@@ -110,7 +120,7 @@
     type="button"
     class="fav"
     class:active={isFavorite}
-    on:click={toggleFavorite}
+    onclick={toggleFavorite}
     aria-pressed={isFavorite}
     aria-label={isFavorite
       ? trf($localeMode, 'Прибрати «{title}» з улюблених', 'Remove “{title}” from favorites', {
