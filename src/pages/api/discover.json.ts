@@ -153,7 +153,7 @@ async function loadByConfig(args: {
   releaseDateLte: string;
   includeCountry: string;
   hiddenGenres: string[];
-  language: 'uk-UA' | 'en-US';
+  language: string;
 }): Promise<{ page: number; totalPages: number; totalResults: number; results: CatalogItem[] }> {
   const {
     categoryConfig,
@@ -248,7 +248,7 @@ async function loadByConfig(args: {
           genres: details.genres,
           release: releaseOf(item, details.releaseDates ?? {}),
           series: details.series ?? null,
-          overview: localizedOverview || 'Опис поки відсутній.',
+          overview: localizedOverview || '',
           voteAverage: item.vote_average,
           voteCount: item.vote_count
         } as CatalogItem;
@@ -267,7 +267,7 @@ async function loadByConfig(args: {
           actors: [],
           genres: [],
           release: releaseOf(item, {}),
-          overview: item.overview || 'Опис поки відсутній.',
+          overview: item.overview || '',
           voteAverage: item.vote_average,
           voteCount: item.vote_count
         } as CatalogItem;

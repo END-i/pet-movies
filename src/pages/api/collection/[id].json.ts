@@ -1,3 +1,4 @@
+import { tmdbLanguage } from '../../../lib/i18n';
 import type { APIRoute } from 'astro';
 import { getCollectionById } from '../../../lib/collections';
 import { makeImageUrl, tmdbRequest } from '../../../lib/tmdb';
@@ -26,8 +27,8 @@ interface GenreResponse {
   genres: Array<{ id: number; name: string }>;
 }
 
-function localeToTmdbLanguage(locale: string): 'uk-UA' | 'en-US' {
-  return locale === 'en' ? 'en-US' : 'uk-UA';
+function localeToTmdbLanguage(locale: string): string {
+  return tmdbLanguage(locale);
 }
 
 function mapSort(sortBy: string, mediaType: MediaType): string {
@@ -53,7 +54,7 @@ function periodDates(period: 'all' | '120' | undefined) {
   };
 }
 
-async function fetchGenres(mediaType: MediaType, language: 'uk-UA' | 'en-US') {
+async function fetchGenres(mediaType: MediaType, language: string) {
   const endpoint = mediaType === 'movie' ? '/genre/movie/list' : '/genre/tv/list';
   const payload = await tmdbRequest<GenreResponse>(endpoint, { language });
 
@@ -70,7 +71,7 @@ async function loadCatalogForType(args: {
   genreId?: string;
   query?: string;
   period?: 'all' | '120';
-  language: 'uk-UA' | 'en-US';
+  language: string;
 }): Promise<{ page: number; totalPages: number; totalResults: number; results: CatalogItem[] }> {
   const { mediaType, page, sortBy, minRating, minVotes, year, genreId, query, period, language } =
     args;

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { tr } from '../lib/i18n';
+  import { intlLocale, tr, trf } from '../lib/i18n';
   import type { LocaleMode } from '../lib/preferences';
   import type { ReleaseInfo } from '../lib/releaseStatus';
   import { seriesStatusLabel, type SeriesInfo } from '../lib/series';
@@ -14,7 +14,7 @@
   function formatDate(value: string): string {
     const date = new Date(`${value}T00:00:00Z`);
     const sameYear = date.getUTCFullYear() === new Date().getUTCFullYear();
-    return date.toLocaleDateString(locale === 'en' ? 'en-US' : 'uk-UA', {
+    return date.toLocaleDateString(intlLocale(locale), {
       day: 'numeric',
       month: 'short',
       year: sameYear ? undefined : 'numeric',
@@ -28,14 +28,12 @@
       ? tr(locale, 'Онлайн', 'Streaming')
       : release.status === 'cinema'
         ? long && release.date
-          ? tr(
-              locale,
-              `У кіно · онлайн з ${formatDate(release.date)}`,
-              `In cinemas · streaming ${formatDate(release.date)}`
-            )
+          ? trf(locale, 'У кіно · онлайн з {date}', 'In cinemas · streaming {date}', {
+              date: formatDate(release.date)
+            })
           : tr(locale, 'У кіно', 'In cinemas')
         : release.date
-          ? tr(locale, `Анонс · ${formatDate(release.date)}`, `Coming ${formatDate(release.date)}`)
+          ? trf(locale, 'Анонс · {date}', 'Coming {date}', { date: formatDate(release.date) })
           : tr(locale, 'Анонс', 'Coming soon');
 
   $: hint = !release

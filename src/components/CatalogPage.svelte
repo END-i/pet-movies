@@ -13,7 +13,7 @@
   } from '../lib/preferences';
   import { TRANSLATION_LANGUAGES } from '../lib/translations';
   import { HIDEABLE_GENRES } from '../lib/genres';
-  import { tr } from '../lib/i18n';
+  import { intlLocale, tr } from '../lib/i18n';
   import { AGE_STEPS, normalizeAgeFilter } from '../lib/ageRating';
   import { buildPaginationTokens, parsePositiveInteger } from '../lib/pagination';
   import type { CatalogItem, PersonSummary } from '../lib/types';
@@ -632,9 +632,7 @@
     </div>
   {:else if results.length}
     <p class="hint summary">
-      {tr(locale, 'Знайдено', 'Found')}: {totalResults.toLocaleString(
-        locale === 'en' ? 'en-US' : 'uk-UA'
-      )}
+      {tr(locale, 'Знайдено', 'Found')}: {totalResults.toLocaleString(intlLocale(locale))}
       {#if totalPages > 1}
         · {tr(locale, 'сторінка', 'page')} {page} / {totalPages}
       {/if}
@@ -799,7 +797,7 @@
               <option value={votes}>
                 {votes === '0'
                   ? tr(locale, 'Будь-яка кількість', 'Any')
-                  : Number(votes).toLocaleString(locale === 'en' ? 'en-US' : 'uk-UA')}
+                  : Number(votes).toLocaleString(intlLocale(locale))}
               </option>
             {/each}
           </select>

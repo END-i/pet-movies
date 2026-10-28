@@ -10,7 +10,7 @@
     removeFromFavorites
   } from '../lib/favorites';
   import { localeMode } from '../lib/preferences';
-  import { tr } from '../lib/i18n';
+  import { tr, trf } from '../lib/i18n';
   import { POSTER_SIZES, posterSrcset } from '../lib/images';
   import type { FavoriteEntry, FavoritesStore } from '../lib/types';
 
@@ -85,16 +85,15 @@
     const count = store[selectedCategory]?.length ?? 0;
     const confirmed = window.confirm(
       count
-        ? tr(
+        ? trf(
             locale,
-            `Видалити категорію «${selectedCategory}» разом з ${count} фільмами?`,
-            `Delete category “${selectedCategory}” and its ${count} titles?`
+            'Видалити категорію «{name}» разом з {count} фільмами?',
+            'Delete category “{name}” and its {count} titles?',
+            { name: selectedCategory, count }
           )
-        : tr(
-            locale,
-            `Видалити категорію «${selectedCategory}»?`,
-            `Delete category “${selectedCategory}”?`
-          )
+        : trf(locale, 'Видалити категорію «{name}»?', 'Delete category “{name}”?', {
+            name: selectedCategory
+          })
     );
     if (!confirmed) return;
     deleteCategory(selectedCategory);
@@ -124,11 +123,9 @@
         type="button"
         class="btn btn-icon delete-category"
         on:click={removeSelectedCategory}
-        aria-label={tr(
-          locale,
-          `Видалити категорію «${selectedCategory}»`,
-          `Delete category “${selectedCategory}”`
-        )}
+        aria-label={trf(locale, 'Видалити категорію «{name}»', 'Delete category “{name}”', {
+          name: selectedCategory
+        })}
       >
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
           <path
@@ -224,7 +221,7 @@
             </h2>
             <p class="muted">
               {entry.item.year || '—'} · {entry.item.mediaType === 'tv'
-                ? tr(locale, 'Серіал', 'TV series')
+                ? tr(locale, 'Серіал', 'Series')
                 : tr(locale, 'Фільм', 'Movie')}
             </p>
             {#if !selectedCategory}
@@ -235,11 +232,9 @@
             type="button"
             class="btn btn-icon remove"
             on:click={() => removeItem(entry)}
-            aria-label={tr(
-              locale,
-              `Видалити «${entry.item.title}»`,
-              `Remove “${entry.item.title}”`
-            )}
+            aria-label={trf(locale, 'Видалити «{title}»', 'Remove “{title}”', {
+              title: entry.item.title
+            })}
           >
             ✕
           </button>

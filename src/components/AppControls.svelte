@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { initializePreferences, localeMode, themeMode } from '../lib/preferences';
-  import { tr } from '../lib/i18n';
+  import { LOCALES, tr } from '../lib/i18n';
 
   onMount(() => {
     initializePreferences();
@@ -11,9 +11,7 @@
     themeMode.set($themeMode === 'dark' ? 'light' : 'dark');
   }
 
-  function toggleLocale() {
-    localeMode.set($localeMode === 'uk' ? 'en' : 'uk');
-  }
+  $: badge = LOCALES.find((option) => option.code === $localeMode)?.badge ?? 'UA';
 </script>
 
 <header class="app-header">
@@ -23,14 +21,15 @@
     </a>
 
     <div class="actions">
-      <button
-        type="button"
-        class="pill"
-        on:click={toggleLocale}
-        aria-label={tr($localeMode, 'Змінити мову на English', 'Switch language to Українська')}
-      >
-        {$localeMode === 'uk' ? 'UA' : 'EN'}
-      </button>
+      <!-- A native select under the pill: the phone shows its own picker. -->
+      <label class="pill language">
+        <span aria-hidden="true">{badge}</span>
+        <select bind:value={$localeMode} aria-label={tr($localeMode, 'Мова', 'Language')}>
+          {#each LOCALES as option (option.code)}
+            <option value={option.code} lang={option.code}>{option.name}</option>
+          {/each}
+        </select>
+      </label>
       <button
         type="button"
         class="pill icon"
@@ -106,6 +105,24 @@
     cursor: pointer;
     display: inline-grid;
     place-items: center;
+  }
+
+  .language {
+    position: relative;
+  }
+
+  .language:focus-within {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .language select {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    opacity: 0;
+    cursor: pointer;
+    font-size: 16px;
   }
 
   .pill svg {

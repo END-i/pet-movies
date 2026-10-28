@@ -215,7 +215,7 @@ test('details page shows info, saves to a new category and links to the actor', 
   // One tile per title in "All", with every role on it.
   await expect(credits.filter({ hasText: 'Матриця' })).toHaveCount(1);
   await expect(page.getByText('Нео · Продюсер')).toBeVisible();
-  await page.getByRole('combobox').selectOption({ label: 'Новіші' });
+  await page.getByRole('combobox', { name: 'Сортування' }).selectOption({ label: 'Новіші' });
   await expect(credits).toHaveText(['Джон Вік', 'Людина Ци', 'Матриця']);
 
   await page
@@ -232,7 +232,16 @@ test('language and theme switches persist across reloads', async ({ page }) => {
   await mockApi(page);
   await gotoHydrated(page, '/');
 
-  await page.getByRole('button', { name: 'Змінити мову на English' }).click();
+  const language = page.getByRole('combobox', { name: 'Мова' });
+  await expect(language.locator('option')).toHaveText([
+    'Українська',
+    'English',
+    'Български',
+    'Deutsch',
+    'Español',
+    'Français'
+  ]);
+  await language.selectOption('en');
   await expect(page.getByRole('heading', { name: 'What to watch?' })).toBeVisible();
   const nav = page.getByRole('navigation', { name: 'Основна навігація' });
   await expect(nav.getByRole('link', { name: 'Favorites' })).toBeVisible();
@@ -324,8 +333,8 @@ test('text search also finds people and links to their page', async ({ page }) =
   await gotoHydrated(page, '/');
   await expect(page.getByRole('heading', { name: 'Люди' })).toHaveCount(0);
 
-  await page.getByRole('combobox').fill('Кіану');
-  await page.getByRole('combobox').press('Enter');
+  await page.getByRole('combobox', { name: 'Пошук фільмів, серіалів і людей' }).fill('Кіану');
+  await page.getByRole('combobox', { name: 'Пошук фільмів, серіалів і людей' }).press('Enter');
 
   const people = page.getByRole('region', { name: 'Люди' });
   await expect(people.getByRole('link', { name: /Кіану Рівз/ })).toBeVisible();
@@ -407,4 +416,26 @@ test('search suggests titles and people while typing', async ({ page }) => {
   await input.fill('матриця');
   await list.getByRole('option', { name: /Кіану Рівз/ }).click();
   await expect(page).toHaveURL(/\/person\/6384$/);
+});
+
+test('German interface: catalog, badges, plurals and the nav', async ({ page }) => {
+  await mockApi(page);
+  await page.addInitScript(() => localStorage.setItem('pet-locale-mode', 'de'));
+  await gotoHydrated(page, '/');
+
+  await expect(page.locator('html')).toHaveAttribute('lang', 'de');
+  await expect(page.getByRole('heading', { name: 'Was schauen?' })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Sprache' })).toHaveValue('de');
+  await expect(page.getByText('Streaming', { exact: true })).toBeVisible();
+  await expect(page.getByTitle('Keine Übersetzung: Ukrainisch')).toHaveCount(1);
+  const nav = page.getByRole('navigation', { name: 'Основна навігація' });
+  await expect(nav.getByRole('link', { name: 'Favoriten' })).toBeVisible();
+  await expect(nav.getByText('Favorites')).toBeHidden();
+
+  // The API is asked for German titles and descriptions.
+  const request = page.waitForRequest('**/api/details/**');
+  await gotoHydrated(page, '/details/movie/603');
+  expect(new URL((await request).url()).searchParams.get('locale')).toBe('de');
+  await expect(page.getByRole('heading', { name: 'Besetzung' })).toBeVisible();
+  await expect(page.getByText('2 Std. 16 Min.')).toBeVisible();
 });

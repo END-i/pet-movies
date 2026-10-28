@@ -1,3 +1,6 @@
+import { intlLocale, tr } from './i18n';
+import type { LocaleMode } from './preferences';
+
 export type SeriesStatus = 'airing' | 'production' | 'planned' | 'ended' | 'canceled';
 
 export interface SeriesInfo {
@@ -44,19 +47,37 @@ export function pluralUk(count: number, one: string, few: string, many: string):
   return many;
 }
 
-export function seasonsLabel(count: number, locale: 'uk' | 'en'): string {
-  return locale === 'en'
-    ? `${count} ${count === 1 ? 'season' : 'seasons'}`
-    : `${count} ${pluralUk(count, 'сезон', 'сезони', 'сезонів')}`;
+type Unit = 'season' | 'episode';
+
+// Forms for Intl.PluralRules categories `one` / `other` (all these languages use just the two).
+const UNIT_FORMS: Record<Exclude<LocaleMode, 'uk'>, Record<Unit, [string, string]>> = {
+  en: { season: ['season', 'seasons'], episode: ['episode', 'episodes'] },
+  bg: { season: ['сезон', 'сезона'], episode: ['епизод', 'епизода'] },
+  de: { season: ['Staffel', 'Staffeln'], episode: ['Folge', 'Folgen'] },
+  es: { season: ['temporada', 'temporadas'], episode: ['episodio', 'episodios'] },
+  fr: { season: ['saison', 'saisons'], episode: ['épisode', 'épisodes'] }
+};
+
+const UK_FORMS: Record<Unit, [string, string, string]> = {
+  season: ['сезон', 'сезони', 'сезонів'],
+  episode: ['серія', 'серії', 'серій']
+};
+
+function countLabel(count: number, unit: Unit, locale: LocaleMode): string {
+  if (locale === 'uk') return `${count} ${pluralUk(count, ...UK_FORMS[unit])}`;
+  const [one, other] = UNIT_FORMS[locale][unit];
+  return `${count} ${new Intl.PluralRules(intlLocale(locale)).select(count) === 'one' ? one : other}`;
 }
 
-export function episodesLabel(count: number, locale: 'uk' | 'en'): string {
-  return locale === 'en'
-    ? `${count} ${count === 1 ? 'episode' : 'episodes'}`
-    : `${count} ${pluralUk(count, 'серія', 'серії', 'серій')}`;
+export function seasonsLabel(count: number, locale: LocaleMode): string {
+  return countLabel(count, 'season', locale);
 }
 
-export function seriesStatusLabel(status: SeriesStatus, locale: 'uk' | 'en'): string {
+export function episodesLabel(count: number, locale: LocaleMode): string {
+  return countLabel(count, 'episode', locale);
+}
+
+export function seriesStatusLabel(status: SeriesStatus, locale: LocaleMode): string {
   const labels: Record<SeriesStatus, [string, string]> = {
     airing: ['Виходить', 'Airing'],
     production: ['Знімається', 'In production'],
@@ -64,15 +85,24 @@ export function seriesStatusLabel(status: SeriesStatus, locale: 'uk' | 'en'): st
     ended: ['Завершено', 'Ended'],
     canceled: ['Закрито', 'Canceled']
   };
-  return labels[status][locale === 'en' ? 1 : 0];
+  return tr(locale, ...labels[status]);
 }
 
 /** "2 год 16 хв" / "2 h 16 min"; '' when unknown. */
-export function runtimeLabel(minutes: number | null | undefined, locale: 'uk' | 'en'): string {
+const TIME_UNITS: Record<LocaleMode, [string, string]> = {
+  uk: ['год', 'хв'],
+  en: ['h', 'min'],
+  bg: ['ч', 'мин'],
+  de: ['Std.', 'Min.'],
+  es: ['h', 'min'],
+  fr: ['h', 'min']
+};
+
+export function runtimeLabel(minutes: number | null | undefined, locale: LocaleMode): string {
   if (!minutes || minutes <= 0) return '';
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
-  const [h, m] = locale === 'en' ? ['h', 'min'] : ['год', 'хв'];
+  const [h, m] = TIME_UNITS[locale];
   if (!hours) return `${rest} ${m}`;
   return rest ? `${hours} ${h} ${rest} ${m}` : `${hours} ${h}`;
 }

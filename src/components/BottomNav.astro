@@ -1,6 +1,6 @@
 ---
 // Static on purpose: no hydration, so nothing re-renders or shifts after the page loads.
-// Labels switch language via `html[lang]`, which is set before the first paint.
+// Labels switch language via `html[lang]` (one span per language in LOCALES, src/lib/i18n.ts).
 interface Props {
   active?: 'search' | 'favorites' | null;
 }
@@ -17,8 +17,24 @@ const { active = null } = Astro.props;
     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
       <path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14ZM20 20l-3.5-3.5"></path>
     </svg>
-    <span class="t-uk">Пошук</span>
-    <span class="t-en">Search</span>
+    <span class="t t-uk" lang="uk">
+      Пошук
+    </span>
+    <span class="t t-en" lang="en">
+      Search
+    </span>
+    <span class="t t-bg" lang="bg">
+      Търсене
+    </span>
+    <span class="t t-de" lang="de">
+      Suche
+    </span>
+    <span class="t t-es" lang="es">
+      Buscar
+    </span>
+    <span class="t t-fr" lang="fr">
+      Rechercher
+    </span>
   </a>
   <a
     href="/favorites"
@@ -28,8 +44,24 @@ const { active = null } = Astro.props;
     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
       <path d="M12 20.5s-7.5-4.6-7.5-10.1A4.4 4.4 0 0 1 12 7.6a4.4 4.4 0 0 1 7.5 2.8c0 5.5-7.5 10.1-7.5 10.1Z"></path>
     </svg>
-    <span class="t-uk">Улюблені</span>
-    <span class="t-en">Favorites</span>
+    <span class="t t-uk" lang="uk">
+      Улюблені
+    </span>
+    <span class="t t-en" lang="en">
+      Favorites
+    </span>
+    <span class="t t-bg" lang="bg">
+      Любими
+    </span>
+    <span class="t t-de" lang="de">
+      Favoriten
+    </span>
+    <span class="t t-es" lang="es">
+      Favoritos
+    </span>
+    <span class="t t-fr" lang="fr">
+      Favoris
+    </span>
   </a>
 </nav>
 
@@ -78,9 +110,18 @@ const { active = null } = Astro.props;
     fill-opacity: 0.18;
   }
 
-  :global(html[lang='en']) .t-uk,
-  :global(html:not([lang='en'])) .t-en {
+  /* Only the label for html[lang] shows; it is set before the first paint (Layout.astro). */
+  .t {
     display: none;
+  }
+
+  :global(html[lang='uk']) .t-uk,
+  :global(html[lang='en']) .t-en,
+  :global(html[lang='bg']) .t-bg,
+  :global(html[lang='de']) .t-de,
+  :global(html[lang='es']) .t-es,
+  :global(html[lang='fr']) .t-fr {
+    display: inline;
   }
 
   @media (min-width: 900px) {

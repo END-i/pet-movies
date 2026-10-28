@@ -11,9 +11,18 @@
     removeFromFavorites,
     toggleFavorite
   } from '../lib/favorites';
-  import { hiddenGenres, localeMode, translationPreference } from '../lib/preferences';
-  import { lacksTranslation, translationLanguage } from '../lib/translations';
-  import { tr } from '../lib/i18n';
+  import {
+    hiddenGenres,
+    localeMode,
+    translationPreference,
+    type LocaleMode
+  } from '../lib/preferences';
+  import {
+    lacksTranslation,
+    missingTranslationLabel,
+    translationLanguage
+  } from '../lib/translations';
+  import { intlLocale, tr } from '../lib/i18n';
   import { POSTER_SIZES, posterSrcset } from '../lib/images';
   import type { MovieDetails } from '../lib/types';
   import type { SimilarPayload } from '../lib/similar';
@@ -37,7 +46,7 @@
 
   $: locale = $localeMode;
   $: showOriginal = details?.originalTitle && details.originalTitle !== details.title;
-  $: dateLocale = locale === 'en' ? 'en-US' : 'uk-UA';
+  $: dateLocale = intlLocale(locale);
 
   function formatDay(value: string): string {
     return new Date(`${value}T00:00:00Z`).toLocaleDateString(dateLocale, {
@@ -69,7 +78,7 @@
         throw new Error(
           payload?.error ??
             tr(
-              loadedLocale as 'uk' | 'en',
+              loadedLocale as LocaleMode,
               'Не вдалося завантажити деталі',
               'Failed to load details'
             )
@@ -274,7 +283,7 @@
               >{/if}
             <span
               >{details.mediaType === 'tv'
-                ? tr(locale, 'Серіал', 'TV series')
+                ? tr(locale, 'Серіал', 'Series')
                 : tr(locale, 'Фільм', 'Movie')}</span
             >
           </p>
@@ -302,11 +311,7 @@
       {#if lacksTranslation(details, $translationPreference)}
         {@const language = translationLanguage($translationPreference)}
         <span class="no-translation">
-          {tr(
-            locale,
-            `Немає перекладу: ${language.uk.toLowerCase()}`,
-            `No ${language.en} translation`
-          )}
+          {missingTranslationLabel(language, locale)}
         </span>
       {/if}
 
@@ -319,7 +324,7 @@
       </p>
 
       <p class="muted small stats">
-        {details.voteCount.toLocaleString()}
+        {details.voteCount.toLocaleString(dateLocale)}
         {tr(locale, 'оцінок', 'votes')}
         {#if details.imdbId}
           · <a
@@ -347,8 +352,12 @@
           {#if details.series?.seasons}
             <dt>{tr(locale, 'Сезони', 'Seasons')}</dt>
             <dd>
-              {seasonsLabel(details.series.seasons, locale)}{#if details.series.episodes}
-                · {episodesLabel(details.series.episodes, locale)}{/if}
+              {[
+                seasonsLabel(details.series.seasons, locale),
+                details.series.episodes ? episodesLabel(details.series.episodes, locale) : ''
+              ]
+                .filter(Boolean)
+                .join(' · ')}
             </dd>
           {/if}
           {#if details.series?.nextEpisode}

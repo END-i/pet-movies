@@ -1,9 +1,10 @@
 import { writable } from 'svelte/store';
 import { parseHiddenGenres } from './genres';
 import { parseTranslationLanguage } from './translations';
+import { parseLocale } from './i18n';
 
 export type ThemeMode = 'dark' | 'light';
-export type LocaleMode = 'uk' | 'en';
+export type LocaleMode = 'uk' | 'en' | 'bg' | 'de' | 'es' | 'fr';
 
 export const THEME_STORAGE_KEY = 'pet-theme-mode';
 export const LOCALE_STORAGE_KEY = 'pet-locale-mode';
@@ -33,7 +34,7 @@ export const themeMode = writable<ThemeMode>(
   isBrowser() && readStorage(THEME_STORAGE_KEY) === 'light' ? 'light' : 'dark'
 );
 export const localeMode = writable<LocaleMode>(
-  isBrowser() && readStorage(LOCALE_STORAGE_KEY) === 'en' ? 'en' : 'uk'
+  parseLocale(isBrowser() ? readStorage(LOCALE_STORAGE_KEY) : null)
 );
 
 /** Genre keys (see `HIDEABLE_GENRES`) the user never wants to see in the catalog. */

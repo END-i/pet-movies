@@ -1,3 +1,6 @@
+import { trf, tr } from './i18n';
+import type { LocaleMode } from './preferences';
+
 // Languages the user can ask for on the "no translation" badge. TMDB only knows whether a
 // title's name/description are translated — not whether there is a dub or subtitles.
 export interface TranslationLanguage {
@@ -61,4 +64,14 @@ export function lacksTranslation(
 ): boolean {
   if (item.translations) return !item.translations.includes(code);
   return code === 'uk' ? item.hasUkrainianTranslation === false : false;
+}
+
+/** "Немає перекладу: польська" / "No Polish translation" in the UI language. */
+export function missingTranslationLabel(language: TranslationLanguage, locale: LocaleMode): string {
+  const name = tr(locale, language.uk, language.en);
+  // Language names are lower case inside a sentence everywhere except English and German.
+  const inSentence = locale === 'en' || locale === 'de' ? name : name.toLowerCase();
+  return trf(locale, 'Немає перекладу: {language}', 'No {language} translation', {
+    language: inSentence
+  });
 }

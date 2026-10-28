@@ -68,6 +68,15 @@ interface DetailsResponse extends TmdbSeriesFields {
     }>;
     crew?: Array<{ id: number; name: string; job?: string }>;
   };
+  /** Series: cast of every season (`credits` has only the latest one). */
+  aggregate_credits?: {
+    cast?: Array<{
+      id: number;
+      name: string;
+      profile_path: string | null;
+      roles?: Array<{ character?: string }>;
+    }>;
+  };
   release_dates?: {
     results?: Array<{
       iso_3166_1: string;
@@ -134,7 +143,7 @@ export const GET: APIRoute = async ({ params, url }) => {
       `/${mediaType}/${id}`,
       {
         append_to_response: `credits,videos,external_ids,translations,watch/providers,${
-          mediaType === 'movie' ? 'release_dates' : 'content_ratings'
+          mediaType === 'movie' ? 'release_dates' : 'content_ratings,aggregate_credits'
         }`,
         include_video_language: 'uk,en,null',
         language
@@ -186,7 +195,7 @@ export const GET: APIRoute = async ({ params, url }) => {
       year: (data.release_date ?? data.first_air_date ?? '').slice(0, 4),
       poster: makeImageUrl(data.poster_path),
       backdrop: makeImageUrl(data.backdrop_path, 'w780'),
-      overview: localizedOverview || 'Опис поки відсутній.',
+      overview: localizedOverview || '',
       countries: (data.production_countries ?? []).map((country) =>
         country.iso_3166_1 ? countryName(country.iso_3166_1, language, country.name) : country.name
       ),
@@ -196,12 +205,20 @@ export const GET: APIRoute = async ({ params, url }) => {
       popularity: data.popularity,
       imdbId: data.external_ids?.imdb_id ?? null,
       genres: (data.genres ?? []).map((genre) => genre.name),
-      actors: (data.credits?.cast ?? []).slice(0, 12).map((actor) => ({
-        id: actor.id,
-        name: actor.name,
-        character: actor.character,
-        photo: makeImageUrl(actor.profile_path, 'w185')
-      })),
+      actors: (data.aggregate_credits?.cast?.length
+        ? data.aggregate_credits.cast.map((actor) => ({
+            ...actor,
+            character: actor.roles?.[0]?.character ?? ''
+          }))
+        : (data.credits?.cast ?? [])
+      )
+        .slice(0, 12)
+        .map((actor) => ({
+          id: actor.id,
+          name: actor.name,
+          character: actor.character,
+          photo: makeImageUrl(actor.profile_path, 'w185')
+        })),
       trailerKey: trailer?.key ?? null,
       tagline: data.tagline?.trim() || undefined,
       runtime:

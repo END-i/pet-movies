@@ -2,8 +2,12 @@
   import { onMount } from 'svelte';
   import { isFavorite as isSaved, toggleFavorite as toggleSaved } from '../lib/favorites';
   import { localeMode, translationPreference } from '../lib/preferences';
-  import { lacksTranslation, translationLanguage } from '../lib/translations';
-  import { tr } from '../lib/i18n';
+  import {
+    lacksTranslation,
+    missingTranslationLabel,
+    translationLanguage
+  } from '../lib/translations';
+  import { tr, trf } from '../lib/i18n';
   import { POSTER_SIZES, posterSrcset } from '../lib/images';
   import type { CatalogItem } from '../lib/types';
   import ReleaseBadge from './ReleaseBadge.svelte';
@@ -92,11 +96,7 @@
           <span class="seasons">{seasonsLabel(item.series.seasons, $localeMode)}</span>
         {/if}
         {#if missing}
-          {@const text = tr(
-            $localeMode,
-            `Немає перекладу: ${missing.uk.toLowerCase()}`,
-            `No ${missing.en} translation`
-          )}
+          {@const text = missingTranslationLabel(missing, $localeMode)}
           <span class="no-translation" title={text}>
             <span aria-hidden="true">{missing.badge}</span>
             <span class="visually-hidden">{text}</span>
@@ -113,12 +113,12 @@
     on:click={toggleFavorite}
     aria-pressed={isFavorite}
     aria-label={isFavorite
-      ? tr(
-          $localeMode,
-          `Прибрати «${item.title}» з улюблених`,
-          `Remove “${item.title}” from favorites`
-        )
-      : tr($localeMode, `Додати «${item.title}» в улюблені`, `Add “${item.title}” to favorites`)}
+      ? trf($localeMode, 'Прибрати «{title}» з улюблених', 'Remove “{title}” from favorites', {
+          title: item.title
+        })
+      : trf($localeMode, 'Додати «{title}» в улюблені', 'Add “{title}” to favorites', {
+          title: item.title
+        })}
   >
     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
       <path

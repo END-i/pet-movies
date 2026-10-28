@@ -35,7 +35,9 @@ const { title, active = null } = Astro.props;
         try {
           var theme = localStorage.getItem('pet-theme-mode') === 'light' ? 'light' : 'dark';
           document.documentElement.setAttribute('data-theme', theme);
-          var locale = localStorage.getItem('pet-locale-mode') === 'en' ? 'en' : 'uk';
+          // Same codes as LOCALES in src/lib/i18n.ts.
+          var saved = localStorage.getItem('pet-locale-mode');
+          var locale = ['en', 'bg', 'de', 'es', 'fr'].indexOf(saved) >= 0 ? saved : 'uk';
           document.documentElement.setAttribute('lang', locale);
         } catch (e) {}
       })();

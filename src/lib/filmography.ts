@@ -1,3 +1,5 @@
+import { tr } from './i18n';
+import type { LocaleMode } from './preferences';
 import type { ActorCreditItem, CreditRole } from './types';
 
 export type CreditSort = 'popular' | 'rating' | 'newest' | 'oldest';
@@ -109,7 +111,8 @@ export function countByRole(credits: ActorCreditItem[]): Partial<Record<CreditRo
   return counts;
 }
 
-const JOBS_UK: Record<string, string> = {
+/** Ukrainian names of TMDB crew jobs; other languages translate the English name via `tr`. */
+export const JOBS_UK: Record<string, string> = {
   Acting: 'Акторство',
   Directing: 'Режисура',
   Writing: 'Сценарії',
@@ -138,10 +141,10 @@ const JOBS_UK: Record<string, string> = {
 };
 
 /** Crew jobs come from TMDB in English; translate the common ones. */
-export function jobLabel(jobs: string, locale: 'uk' | 'en'): string {
+export function jobLabel(jobs: string, locale: LocaleMode): string {
   if (locale === 'en') return jobs;
   return jobs
     .split(', ')
-    .map((job) => JOBS_UK[job] ?? job)
+    .map((job) => (JOBS_UK[job] ? tr(locale, JOBS_UK[job], job) : job))
     .join(', ');
 }
