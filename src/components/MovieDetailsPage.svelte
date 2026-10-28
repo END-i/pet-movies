@@ -8,7 +8,8 @@
     DEFAULT_FAVORITES_CATEGORY,
     listCategories,
     loadFavorites,
-    removeFromFavorites
+    removeFromFavorites,
+    toggleFavorite
   } from '../lib/favorites';
   import { localeMode } from '../lib/preferences';
   import { tr } from '../lib/i18n';
@@ -93,6 +94,19 @@
     refreshFavorites();
   }
 
+  function toggleHeart() {
+    if (!details) return;
+    toggleFavorite({
+      id: details.id,
+      mediaType: details.mediaType,
+      title: details.title,
+      originalTitle: details.originalTitle,
+      poster: details.poster,
+      year: details.year
+    });
+    refreshFavorites();
+  }
+
   function createCategory() {
     const value = newCategory.trim();
     if (!value || !details) return;
@@ -160,16 +174,34 @@
           on:click={goBack}
           aria-label={tr(locale, 'Назад', 'Back')}>←</button
         >
-        <button
-          type="button"
-          class="round"
-          on:click={share}
-          aria-label={tr(locale, 'Поділитися', 'Share')}
-        >
-          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-            <path d="M12 3v12M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" />
-          </svg>
-        </button>
+        <div class="hero-actions">
+          <button
+            type="button"
+            class="round heart"
+            class:active={savedIn.length > 0}
+            on:click={toggleHeart}
+            aria-pressed={savedIn.length > 0}
+            aria-label={savedIn.length
+              ? tr(locale, 'Прибрати з улюблених', 'Remove from favorites')
+              : tr(locale, 'Додати в улюблені', 'Add to favorites')}
+          >
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+              <path
+                d="M12 20.5s-7.5-4.6-7.5-10.1A4.4 4.4 0 0 1 12 7.6a4.4 4.4 0 0 1 7.5 2.8c0 5.5-7.5 10.1-7.5 10.1Z"
+              />
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="round"
+            on:click={share}
+            aria-label={tr(locale, 'Поділитися', 'Share')}
+          >
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+              <path d="M12 3v12M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <div class="hero-main">
@@ -239,9 +271,7 @@
 
       <section class="panel favorites" aria-labelledby="fav-title">
         <h2 id="fav-title" class="section-title">
-          {savedIn.length
-            ? tr(locale, 'В улюблених', 'In favorites')
-            : tr(locale, 'Додати в улюблені', 'Add to favorites')}
+          {tr(locale, 'Категорії улюблених', 'Favorite categories')}
         </h2>
         <div class="chips">
           {#each categories as category (category)}
@@ -264,8 +294,15 @@
             aria-label={tr(locale, 'Нова категорія', 'New category')}
             enterkeyhint="done"
           />
-          <button type="submit" class="btn btn-primary" disabled={!newCategory.trim()}>
-            {tr(locale, 'Додати', 'Add')}
+          <button
+            type="submit"
+            class="btn btn-primary btn-icon add-category"
+            disabled={!newCategory.trim()}
+            aria-label={tr(locale, 'Створити категорію й додати', 'Create category and add')}
+          >
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
           </button>
         </form>
       </section>
@@ -358,6 +395,30 @@
     cursor: pointer;
     -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .heart.active {
+    color: #ef4444;
+  }
+
+  .heart.active svg {
+    fill: currentColor;
+  }
+
+  .add-category svg {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+
+  .add-category {
+    color: #fff;
   }
 
   .round svg {

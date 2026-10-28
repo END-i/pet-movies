@@ -3,13 +3,16 @@ import {
   addToFavorites,
   categoriesContaining,
   countFavorites,
+  DEFAULT_FAVORITES_CATEGORY,
   deleteCategory,
   ensureCategory,
   FAVORITES_STORAGE_KEY,
+  isFavorite,
   isInCategory,
   listCategories,
   loadFavorites,
-  removeFromFavorites
+  removeFromFavorites,
+  toggleFavorite
 } from '../../src/lib/favorites';
 import type { FavoriteEntry } from '../../src/lib/types';
 
@@ -86,5 +89,22 @@ describe('favorites storage', () => {
     expect(loadFavorites()['Пізніше']).toEqual([]);
     deleteCategory('Пізніше');
     expect(loadFavorites()).toEqual({});
+  });
+
+  it('♡ saves to the default category and removes from every category', () => {
+    expect(toggleFavorite(matrix)).toBe(true);
+    expect(isInCategory(DEFAULT_FAVORITES_CATEGORY, 603, 'movie')).toBe(true);
+    addToFavorites('Класика', matrix);
+    expect(isFavorite(603, 'movie')).toBe(true);
+
+    expect(toggleFavorite(matrix)).toBe(false);
+    expect(isFavorite(603, 'movie')).toBe(false);
+    expect(categoriesContaining(603, 'movie')).toEqual([]);
+  });
+
+  it('♡ shows titles saved earlier in any category as favorites', () => {
+    addToFavorites('Швидкі', dark);
+    expect(isFavorite(70523, 'tv')).toBe(true);
+    expect(isFavorite(603, 'movie')).toBe(false);
   });
 });

@@ -112,6 +112,25 @@ export function removeFromFavorites(
   return store;
 }
 
+/** True when the title is saved in any category (what the ♡ shows). */
+export function isFavorite(id: number, mediaType: MediaType): boolean {
+  return categoriesContaining(id, mediaType).length > 0;
+}
+
+/**
+ * The ♡ action: saves to the default category, or removes the title from every category.
+ * Returns whether the title is a favorite afterwards.
+ */
+export function toggleFavorite(item: FavoriteEntry): boolean {
+  const saved = categoriesContaining(item.id, item.mediaType);
+  if (saved.length) {
+    saved.forEach((category) => removeFromFavorites(category, item.id, item.mediaType));
+    return false;
+  }
+  addToFavorites(DEFAULT_FAVORITES_CATEGORY, item);
+  return true;
+}
+
 export function ensureCategory(category: string): FavoritesStore {
   const store = readStore();
   const normalizedCategory = normalizeCategory(category);

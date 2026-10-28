@@ -175,7 +175,7 @@ test('details page shows info, saves to a new category and links to the actor', 
   await expectNoHorizontalScroll(page);
 
   await page.getByRole('textbox', { name: 'Нова категорія' }).fill('Класика');
-  await page.getByRole('button', { name: 'Додати', exact: true }).click();
+  await page.getByRole('button', { name: 'Створити категорію й додати' }).click();
   await expect(page.getByRole('button', { name: '✓ Класика' })).toHaveAttribute(
     'aria-pressed',
     'true'
@@ -183,6 +183,19 @@ test('details page shows info, saves to a new category and links to the actor', 
 
   const stored = await page.evaluate(() => localStorage.getItem('movie-finder-favorites-v1'));
   expect(JSON.parse(stored ?? '{}')['Класика'][0].id).toBe(603);
+
+  const heart = page.getByRole('button', { name: 'Прибрати з улюблених' });
+  await expect(heart).toHaveAttribute('aria-pressed', 'true');
+  await heart.click();
+  await expect(page.getByRole('button', { name: 'Додати в улюблені' })).toHaveAttribute(
+    'aria-pressed',
+    'false'
+  );
+  await page.getByRole('button', { name: 'Додати в улюблені' }).click();
+  await expect(page.getByRole('button', { name: '✓ Загальне' })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  );
 
   await page.getByRole('link', { name: /Кіану Рівз/ }).click();
   await expect(page).toHaveURL(/\/person\/6384/);

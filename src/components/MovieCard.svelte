@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { addToFavorites, isInCategory, removeFromFavorites } from '../lib/favorites';
+  import { isFavorite as isSaved, toggleFavorite as toggleSaved } from '../lib/favorites';
   import { localeMode } from '../lib/preferences';
   import { tr } from '../lib/i18n';
   import { POSTER_SIZES, posterSrcset } from '../lib/images';
@@ -10,7 +10,6 @@
   export let item: CatalogItem;
 
   const FALLBACK_POSTER = '/fallback-poster.svg';
-  const QUICK_FAVORITES_CATEGORY = 'Швидкі';
 
   let posterFailed = false;
   let isFavorite = false;
@@ -21,24 +20,18 @@
   $: meta = [item.year, item.countries.slice(0, 2).join(', ')].filter(Boolean).join(' · ');
 
   function refreshFavoriteState() {
-    isFavorite = isInCategory(QUICK_FAVORITES_CATEGORY, item.id, item.mediaType);
+    isFavorite = isSaved(item.id, item.mediaType);
   }
 
   function toggleFavorite() {
-    if (isFavorite) {
-      removeFromFavorites(QUICK_FAVORITES_CATEGORY, item.id, item.mediaType);
-    } else {
-      addToFavorites(QUICK_FAVORITES_CATEGORY, {
-        id: item.id,
-        mediaType: item.mediaType,
-        title: item.title,
-        originalTitle: item.originalTitle,
-        poster: item.poster,
-        year: item.year
-      });
-    }
-
-    refreshFavoriteState();
+    isFavorite = toggleSaved({
+      id: item.id,
+      mediaType: item.mediaType,
+      title: item.title,
+      originalTitle: item.originalTitle,
+      poster: item.poster,
+      year: item.year
+    });
   }
 
   onMount(refreshFavoriteState);
