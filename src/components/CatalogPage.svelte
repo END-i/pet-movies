@@ -793,7 +793,7 @@
         <label>
           {tr(locale, 'Голосів від', 'Votes from')}
           <select class="input" bind:value={minVotes}>
-            {#each voteOptions as votes}
+            {#each voteOptions as votes (votes)}
               <option value={votes}>
                 {votes === '0'
                   ? tr(locale, 'Будь-яка кількість', 'Any')
@@ -832,7 +832,7 @@
           {tr(locale, 'Вік глядача', 'Viewer age')}
           <select class="input" bind:value={ageRating}>
             <option value="">{tr(locale, 'Будь-який', 'Any')}</option>
-            {#each AGE_STEPS as age}
+            {#each AGE_STEPS as age (age)}
               <option value={age}>{age}+</option>
             {/each}
           </select>

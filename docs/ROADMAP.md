@@ -196,7 +196,8 @@
 
 - [ ] Svelte 5 зі старим синтаксисом (`export let`, `$:`) → runes.
 - [ ] `CatalogPage.svelte` (~700 рядків): винести пресети, стан фільтрів і синхронізацію з URL у `src/lib`.
-- [ ] Немає ESLint-конфігу, хоча залежності встановлено (`eslint`, `eslint-plugin-svelte`…) — додати конфіг за прикладом cards або прибрати залежності.
+- [x] Немає ESLint-конфігу, хоча залежності встановлено (`eslint`, `eslint-plugin-svelte`…) — додати конфіг за прикладом cards або прибрати залежності.
+  - Зроблено (28.10): `eslint.config.js` (JS + TypeScript + Svelte + Prettier), `npm run lint`, входить у `npm run ci`. `.astro` перевіряє `astro check`. Для Svelte вимкнено три правила, що хибно спрацьовують на старому `$:` — повернути після переходу на runes.
 - [ ] E2E на dev-сервері (SW вимкнений) — додати e2e на `build` з `context.setOffline(true)`.
 - [ ] Немає компонентних тестів.
 - [ ] Типи відповідей TMDB описані вручну в кожному роуті — винести в `src/lib/tmdb-types.ts`.

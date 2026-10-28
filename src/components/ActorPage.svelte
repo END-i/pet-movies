@@ -43,7 +43,8 @@
   $: availableRoles = CREDIT_ROLES.filter((item) => roleCounts[item]);
   $: filteredCredits = sortCredits(creditsForRole(actor?.credits ?? [], role), sort);
   $: visibleCredits = filteredCredits.slice(0, shown);
-  $: (role, sort, (shown = CREDITS_PAGE));
+  // A new role or sort starts again from the first page.
+  $: resetShown(role, sort);
   $: bioText = bioExpanded || !bioIsLong ? bio : `${bio.slice(0, BIO_PREVIEW_CHARS).trimEnd()}…`;
 
   async function loadActor() {
@@ -87,6 +88,10 @@
 
   $: if (loadedLocale && $localeMode !== loadedLocale && !loading) {
     void loadActor();
+  }
+
+  function resetShown(..._dependencies: unknown[]) {
+    shown = CREDITS_PAGE;
   }
 </script>
 
