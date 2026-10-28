@@ -23,9 +23,26 @@ function withSecurityHeaders(response: Response): Response {
   return response;
 }
 
+/**
+ * SSR pages are always revalidated, so a deploy shows up at once; `/_astro/*` assets are
+ * content-hashed and cached for a year by the adapter, API routes set their own max-age.
+ */
+function withPageCaching(response: Response): Response {
+  try {
+    const isHtml = response.headers.get('Content-Type')?.includes('text/html');
+    if (isHtml && !response.headers.has('Cache-Control')) {
+      response.headers.set('Cache-Control', 'no-cache');
+    }
+  } catch {
+    // Immutable headers: keep the response unchanged.
+  }
+  return response;
+}
+
 export const onRequest = defineMiddleware(async (context, next) => {
   if (context.isPrerendered) return next();
-  if (!context.url.pathname.startsWith('/api/')) return withSecurityHeaders(await next());
+  if (!context.url.pathname.startsWith('/api/'))
+    return withPageCaching(withSecurityHeaders(await next()));
 
   let socketAddress: string | undefined;
   try {
