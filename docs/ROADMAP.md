@@ -138,7 +138,8 @@
 - [x] **Атрибуція TMDB** — вимога умов використання API: логотип TMDB і текст «This product uses the TMDB API but is not endorsed or certified by TMDB» (наприклад, сторінка «Про застосунок» або футер). — текст і посилання — у футері на всіх сторінках (`AppFooter.svelte`). Лишилось: офіційний логотип TMDB з themoviedb.org/about/logos-attribution.
 - [x] **Захист `/api/*`**: зараз будь-хто може викликати ці роути й витрачати ліміт ключа. Rate limit за IP і серверний кеш відповідей. — `src/middleware.ts`: 40 запитів одразу, далі 1/с на IP, інакше `429` з `Retry-After`. IP — останній хоп `X-Forwarded-For` (додає наш проксі). Кеш — `src/lib/cache.ts` (у пам’яті процесу).
 - [ ] Ручна перевірка на реальних iPhone і Android: встановлення, запуск з іконки, офлайн (відкрита раніше сторінка, улюблені, `/offline` для нової сторінки), оновлення версії.
-- [ ] Видалити невикористане або підключити: `/api/collections.json`, `/api/collection/[id].json`, `/api/person/popular.json` (UI їх не викликає), `public/logo.svg`, `public/favicon.ico`.
+- [x] Видалити невикористане або підключити: `/api/collections.json`, `/api/collection/[id].json`, `/api/person/popular.json` (UI їх не викликає), `public/logo.svg`, `public/favicon.ico`.
+  - Зроблено (28.10): видалено колекції (`/api/collections.json`, `/api/collection/[id].json`, `src/lib/collections.ts`, типи), `/api/person/popular.json`, `public/logo.svg`. `favicon.ico` лишився — браузери запитують його самі.
 - [ ] `npm audit` — під час встановлення були попередження, переглянути.
 
 ### 3.2 Продуктивність і трафік (важливо для мобільного інтернету)
@@ -156,7 +157,8 @@
 - [ ] Моніторинг помилок (Sentry або аналог) для клієнта й API.
 - [x] Серверні тексти в API не локалізовані для англійської: «Невідомо», «Опис поки відсутній.», «Біографія поки відсутня.», «Без назви», стать.
   - Зроблено (28.10): API віддає порожні значення замість «Невідомо» / «Опис поки відсутній.» / «Біографія поки відсутня.», сторінки ховають рядок або показують перекладений текст. Лишились «Без назви» (майже не трапляється) і `genderLabel` (в інтерфейсі не показується).
-- [ ] Заголовки безпеки (CSP з дозволом на `image.tmdb.org`, `i.ytimg.com`, `youtube-nocookie.com`).
+- [x] Заголовки безпеки (CSP з дозволом на `image.tmdb.org`, `i.ytimg.com`, `youtube-nocookie.com`).
+  - Частково (28.10): `src/middleware.ts` додає `nosniff`, `Referrer-Policy`, `X-Frame-Options: DENY`, `Permissions-Policy` до сторінок і API. CSP не додано: острови Astro й скрипт теми інлайнові, CSP без `unsafe-inline` потребує nonce/hash.
 
 ## 4. Покращення функціональності
 

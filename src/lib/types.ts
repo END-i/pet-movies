@@ -77,27 +77,6 @@ export interface ActorDetails {
   credits: ActorCreditItem[];
 }
 
-export interface CollectionCategory {
-  id: string;
-  title: string;
-  mediaType: 'movie' | 'tv' | 'all';
-  year?: string;
-  genreId?: string;
-  sortBy: string;
-  minRating: string;
-  minVotes: string;
-  releasePeriod?: 'all' | '120';
-  includeKeywords?: string;
-}
-
-export interface CollectionDetails {
-  category: CollectionCategory;
-  page: number;
-  totalPages: number;
-  totalResults: number;
-  results: CatalogItem[];
-}
-
 export interface MovieDetails {
   id: number;
   mediaType: MediaType;

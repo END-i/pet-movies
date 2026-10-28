@@ -7,7 +7,7 @@ export const pwaOptions = {
   registerType: 'autoUpdate',
   // Registration happens in Layout.astro.
   injectRegister: false,
-  includeAssets: ['favicon.svg', 'fallback-poster.svg', 'fallback-person.svg', 'logo.svg'],
+  includeAssets: ['favicon.svg', 'fallback-poster.svg', 'fallback-person.svg'],
   manifest: {
     id: '/',
     name: 'PET Movie Search',
