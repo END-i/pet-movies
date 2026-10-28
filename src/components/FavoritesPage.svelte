@@ -10,11 +10,16 @@
     importFavorites,
     listCategories,
     loadFavorites,
+    moveFavorite,
+    renameCategory,
+    setWatched,
+    sortFavorites,
+    type FavoritesSort,
     parseFavoritesBackup,
     removeFromFavorites
   } from '../lib/favorites';
   import { localeMode } from '../lib/preferences';
-  import { tr, trf } from '../lib/i18n';
+  import { intlLocale, tr, trf } from '../lib/i18n';
   import { POSTER_SIZES, posterSrcset } from '../lib/images';
   import type { FavoriteEntry, FavoritesStore } from '../lib/types';
 
@@ -25,13 +30,22 @@
   let selectedCategory = '';
   let newCategory = '';
   let hydrated = false;
+  let sort: FavoritesSort = 'added';
+  let hideWatched = false;
   let backupMessage = '';
   let backupError = false;
   let importInput: HTMLInputElement;
 
   $: locale = $localeMode;
   $: total = countFavorites(store);
-  $: displayEntries = buildEntries(store, categories, selectedCategory);
+  $: displayEntries = sortFavorites(
+    buildEntries(store, categories, selectedCategory).filter(
+      (entry) => !hideWatched || !entry.item.watched
+    ),
+    sort,
+    intlLocale(locale)
+  );
+  $: otherCategories = categories.filter((category) => category !== selectedCategory);
 
   function buildEntries(
     current: FavoritesStore,
@@ -77,6 +91,31 @@
     newCategory = '';
     sync();
     selectedCategory = value;
+  }
+
+  function toggleWatched(entry: DisplayEntry) {
+    setWatched(entry.item.id, entry.item.mediaType, !entry.item.watched);
+    sync();
+  }
+
+  function moveItem(entry: DisplayEntry, event: Event) {
+    const select = event.currentTarget as HTMLSelectElement;
+    if (select.value)
+      moveFavorite(selectedCategory, select.value, entry.item.id, entry.item.mediaType);
+    select.value = '';
+    sync();
+  }
+
+  function renameSelectedCategory() {
+    if (!selectedCategory) return;
+    const name = window.prompt(
+      tr(locale, 'Нова назва категорії', 'New category name'),
+      selectedCategory
+    );
+    if (name === null) return;
+    const renamed = renameCategory(selectedCategory, name);
+    sync();
+    if (renamed) selectedCategory = renamed;
   }
 
   function removeItem(entry: DisplayEntry) {
@@ -165,6 +204,18 @@
     {#if selectedCategory}
       <button
         type="button"
+        class="btn btn-icon rename-category"
+        on:click={renameSelectedCategory}
+        aria-label={trf(locale, 'Перейменувати категорію «{name}»', 'Rename category “{name}”', {
+          name: selectedCategory
+        })}
+      >
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+          <path d="M4 20h4L19 9l-4-4L4 16v4ZM13.5 6.5l4 4" />
+        </svg>
+      </button>
+      <button
+        type="button"
         class="btn btn-icon delete-category"
         on:click={removeSelectedCategory}
         aria-label={trf(locale, 'Видалити категорію «{name}»', 'Delete category “{name}”', {
@@ -222,6 +273,27 @@
     </button>
   </form>
 
+  {#if hydrated && total}
+    <div class="toolbar">
+      <label>
+        <span class="visually-hidden">{tr(locale, 'Сортування', 'Sorting')}</span>
+        <select class="input" bind:value={sort}>
+          <option value="added">{tr(locale, 'Нещодавно додані', 'Recently added')}</option>
+          <option value="title">{tr(locale, 'За назвою', 'By title')}</option>
+          <option value="year">{tr(locale, 'Новіші', 'Newest')}</option>
+        </select>
+      </label>
+      <button
+        type="button"
+        class="chip"
+        aria-pressed={hideWatched}
+        on:click={() => (hideWatched = !hideWatched)}
+      >
+        {tr(locale, 'Сховати переглянуті', 'Hide watched')}
+      </button>
+    </div>
+  {/if}
+
   {#if !hydrated}
     <div class="skeleton" style="height: 120px"></div>
   {:else if displayEntries.length === 0}
@@ -242,7 +314,7 @@
   {:else}
     <section class="list">
       {#each displayEntries as entry (`${entry.item.mediaType}-${entry.item.id}`)}
-        <article class="fav-item">
+        <article class="fav-item" class:watched={entry.item.watched}>
           <a
             class="poster"
             href={`/details/${entry.item.mediaType}/${entry.item.id}`}
@@ -270,8 +342,33 @@
             </p>
             {#if !selectedCategory}
               <p class="category-mark">{entry.category}</p>
+            {:else if otherCategories.length}
+              <label class="move">
+                <span class="visually-hidden">
+                  {trf(locale, 'Перемістити «{title}»', 'Move “{title}”', {
+                    title: entry.item.title
+                  })}
+                </span>
+                <select class="input" on:change={(event) => moveItem(entry, event)}>
+                  <option value="">{tr(locale, 'Перемістити до…', 'Move to…')}</option>
+                  {#each otherCategories as category (category)}
+                    <option value={category}>{category}</option>
+                  {/each}
+                </select>
+              </label>
             {/if}
           </div>
+          <button
+            type="button"
+            class="btn btn-icon watched-toggle"
+            aria-pressed={!!entry.item.watched}
+            on:click={() => toggleWatched(entry)}
+            aria-label={trf(locale, 'Переглянуто: «{title}»', 'Watched: “{title}”', {
+              title: entry.item.title
+            })}
+          >
+            ✓
+          </button>
           <button
             type="button"
             class="btn btn-icon remove"
@@ -394,7 +491,7 @@
 
   .fav-item {
     display: grid;
-    grid-template-columns: 64px minmax(0, 1fr) auto;
+    grid-template-columns: 64px minmax(0, 1fr) auto auto;
     gap: 12px;
     align-items: center;
     padding: 8px;
@@ -436,6 +533,52 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .fav-item.watched .poster,
+  .fav-item.watched .body {
+    opacity: 0.55;
+  }
+
+  .watched-toggle {
+    color: var(--muted);
+    background: transparent;
+    font-weight: 800;
+  }
+
+  .watched-toggle[aria-pressed='true'] {
+    color: var(--success);
+    border-color: var(--success);
+  }
+
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .toolbar select {
+    min-height: 40px;
+  }
+
+  .move select {
+    margin-top: 4px;
+    min-height: 36px;
+    padding: 4px 8px;
+    font-size: 0.85rem;
+  }
+
+  .rename-category {
+    margin-left: auto;
+    align-self: center;
+    color: var(--muted);
+    background: transparent;
+    border-color: transparent;
+  }
+
+  .rename-category + .delete-category {
+    margin-left: 0;
   }
 
   .remove {

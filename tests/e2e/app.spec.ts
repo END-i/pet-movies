@@ -498,3 +498,54 @@ test('favorites can be exported to a file and imported back', async ({ page }) =
   });
   await expect(page.getByRole('alert')).toContainText('Це не файл з улюбленими');
 });
+
+test('favorites: mark watched, hide watched, sort, move and rename', async ({ page }) => {
+  await mockApi(page);
+  await page.addInitScript(() => {
+    if (localStorage.getItem('seeded')) return;
+    localStorage.setItem('seeded', '1');
+    localStorage.setItem(
+      'movie-finder-favorites-v1',
+      JSON.stringify({
+        Класика: [
+          { id: 603, mediaType: 'movie', title: 'Матриця', poster: null, year: '1999' },
+          { id: 70523, mediaType: 'tv', title: 'Dark', poster: null, year: '2017' }
+        ],
+        Пізніше: []
+      })
+    );
+  });
+  await gotoHydrated(page, '/favorites');
+  const titles = page.locator('.fav-item h2');
+
+  await page.getByRole('button', { name: 'Переглянуто: «Матриця»' }).click();
+  await expect(page.getByRole('button', { name: 'Переглянуто: «Матриця»' })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  );
+  await page.getByRole('button', { name: 'Сховати переглянуті' }).click();
+  await expect(titles).toHaveText(['Dark']);
+  await page.getByRole('button', { name: 'Сховати переглянуті' }).click();
+
+  await page.getByRole('combobox', { name: 'Сортування' }).selectOption('year');
+  await expect(titles).toHaveText(['Dark', 'Матриця']);
+
+  await page.getByRole('button', { name: /^Класика/ }).click();
+  await page.getByRole('combobox', { name: 'Перемістити «Dark»' }).selectOption('Пізніше');
+  await expect(titles).toHaveText(['Матриця']);
+
+  page.once('dialog', (dialog) => dialog.accept('Улюблена класика'));
+  await page.getByRole('button', { name: 'Перейменувати категорію «Класика»' }).click();
+  await expect(page.getByRole('button', { name: /^Улюблена класика/ })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  );
+
+  await page.reload();
+  await page.waitForFunction(() => !document.querySelector('astro-island[ssr]'));
+  await expect(page.getByRole('button', { name: /^Пізніше/ })).toContainText('1');
+  await expect(page.getByRole('button', { name: 'Переглянуто: «Матриця»' })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  );
+});

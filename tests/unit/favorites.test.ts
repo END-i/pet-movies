@@ -14,8 +14,12 @@ import {
   isInCategory,
   listCategories,
   loadFavorites,
+  moveFavorite,
   parseFavoritesBackup,
   removeFromFavorites,
+  renameCategory,
+  setWatched,
+  sortFavorites,
   toggleFavorite
 } from '../../src/lib/favorites';
 import type { FavoriteEntry } from '../../src/lib/types';
@@ -119,7 +123,9 @@ describe('favorites backup', () => {
   it('round-trips through a file and names it by date', () => {
     addToFavorites('Класика', matrix);
     const text = JSON.stringify(buildFavoritesBackup(loadFavorites()));
-    expect(parseFavoritesBackup(text)).toEqual({ Класика: [matrix] });
+    expect(parseFavoritesBackup(text)).toEqual({
+      Класика: [{ ...matrix, addedAt: expect.any(Number) }]
+    });
     expect(favoritesBackupFileName(new Date('2026-10-28T10:00:00Z'))).toBe(
       'pet-movies-favorites-2026-10-28.json'
     );
@@ -141,5 +147,62 @@ describe('favorites backup', () => {
     expect(loadFavorites()['Класика']).toHaveLength(2);
     expect(listCategories(loadFavorites())).toContain('Порожня');
     expect(importFavorites({ Класика: [dark] })).toBe(0);
+  });
+});
+
+describe('favorites: watched, rename, move, sort', () => {
+  beforeEach(() => localStorage.clear());
+
+  it('marks watched in every category and keeps it for new categories', () => {
+    addToFavorites('A', matrix);
+    addToFavorites('B', matrix);
+    setWatched(matrix.id, matrix.mediaType, true);
+    const store = loadFavorites();
+    expect(store.A[0].watched).toBe(true);
+    expect(store.B[0].watched).toBe(true);
+    addToFavorites('C', matrix);
+    expect(loadFavorites().C[0].watched).toBe(true);
+    setWatched(matrix.id, matrix.mediaType, false);
+    expect(loadFavorites().A[0]).not.toHaveProperty('watched');
+  });
+
+  it('stamps addedAt when saving', () => {
+    addToFavorites('A', matrix);
+    expect(typeof loadFavorites().A[0].addedAt).toBe('number');
+  });
+
+  it('renames a category and merges into an existing one', () => {
+    addToFavorites('A', matrix);
+    addToFavorites('B', matrix);
+    addToFavorites('B', dark);
+    expect(renameCategory('B', '  A ')).toBe('A');
+    expect(loadFavorites()).toEqual({ A: expect.any(Array) });
+    expect(loadFavorites().A.map((entry) => entry.id)).toEqual([603, 70523]);
+    expect(renameCategory('missing', 'X')).toBeNull();
+    expect(renameCategory('A', '   ')).toBeNull();
+  });
+
+  it('moves a title between categories', () => {
+    addToFavorites('A', matrix);
+    addToFavorites('A', dark);
+    expect(moveFavorite('A', 'B', matrix.id, matrix.mediaType)).toBe(true);
+    expect(loadFavorites().A.map((entry) => entry.id)).toEqual([70523]);
+    expect(loadFavorites().B.map((entry) => entry.id)).toEqual([603]);
+    expect(moveFavorite('A', 'A', dark.id, dark.mediaType)).toBe(false);
+  });
+
+  it('sorts by title or year, newest first by default', () => {
+    const entries = [{ item: matrix }, { item: dark }];
+    expect(sortFavorites(entries, 'added', 'uk').map((e) => e.item.id)).toEqual([603, 70523]);
+    // Ukrainian order puts Cyrillic first.
+    expect(sortFavorites(entries, 'title', 'uk').map((e) => e.item.title)).toEqual([
+      'Матриця',
+      'Dark'
+    ]);
+    expect(sortFavorites(entries, 'title', 'en').map((e) => e.item.title)).toEqual([
+      'Dark',
+      'Матриця'
+    ]);
+    expect(sortFavorites(entries, 'year', 'uk').map((e) => e.item.year)).toEqual(['2017', '1999']);
   });
 });

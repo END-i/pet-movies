@@ -140,6 +140,10 @@ export interface FavoriteEntry {
   originalTitle?: string;
   poster: string | null;
   year: string;
+  /** Marked as watched by the user (shared by every category the title is in). */
+  watched?: boolean;
+  /** Epoch ms; missing on titles saved before it existed. */
+  addedAt?: number;
 }
 
 export type FavoritesStore = Record<string, FavoriteEntry[]>;

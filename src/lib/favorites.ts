@@ -88,7 +88,11 @@ export function addToFavorites(category: string, item: FavoriteEntry): Favorites
 
   const list = store[normalizedCategory] ?? [];
   if (!list.some((entry) => sameItem(entry, item.id, item.mediaType))) {
-    store[normalizedCategory] = [item, ...list];
+    const watched = Object.values(store)
+      .flat()
+      .some((entry) => sameItem(entry, item.id, item.mediaType) && entry.watched);
+    const saved = { ...item, addedAt: item.addedAt ?? Date.now(), ...(watched ? { watched } : {}) };
+    store[normalizedCategory] = [saved, ...list];
     writeStore(store);
     requestPersistentStorage();
   }
@@ -199,9 +203,11 @@ export function parseFavoritesBackup(text: string): FavoritesStore | null {
           id: entry.id,
           mediaType: entry.mediaType,
           title: entry.title,
-          originalTitle: entry.originalTitle,
+          ...(entry.originalTitle ? { originalTitle: entry.originalTitle } : {}),
           poster: entry.poster ?? null,
-          year: entry.year ?? ''
+          year: entry.year ?? '',
+          ...(entry.watched ? { watched: true } : {}),
+          ...(typeof entry.addedAt === 'number' ? { addedAt: entry.addedAt } : {})
         }));
       }
     }
@@ -230,4 +236,69 @@ export function importFavorites(incoming: FavoritesStore): number {
 /** Ask the browser not to evict saved favorites under storage pressure (like cards does). */
 export function requestPersistentStorage(): void {
   if (isBrowser()) void navigator.storage?.persist?.().catch(() => false);
+}
+
+/** Marks a title watched (or not) in every category it is saved in. */
+export function setWatched(id: number, mediaType: MediaType, watched: boolean): FavoritesStore {
+  const store = readStore();
+  for (const list of Object.values(store)) {
+    for (const entry of list) {
+      if (!sameItem(entry, id, mediaType)) continue;
+      if (watched) entry.watched = true;
+      else delete entry.watched;
+    }
+  }
+  writeStore(store);
+  return store;
+}
+
+/** Renames a category; if the new name exists, the two are merged. Returns the final name or null. */
+export function renameCategory(from: string, to: string): string | null {
+  const store = readStore();
+  const name = normalizeCategory(to);
+  if (!name || !store[from]) return null;
+  if (name === from) return name;
+
+  const target = store[name] ?? [];
+  const moved = store[from].filter(
+    (item) => !target.some((entry) => sameItem(entry, item.id, item.mediaType))
+  );
+  store[name] = [...target, ...moved];
+  delete store[from];
+  writeStore(store);
+  return name;
+}
+
+/** Moves a title from one category to another (kept once if it is already there). */
+export function moveFavorite(from: string, to: string, id: number, mediaType: MediaType): boolean {
+  const store = readStore();
+  const name = normalizeCategory(to);
+  const item = store[from]?.find((entry) => sameItem(entry, id, mediaType));
+  if (!item || !name || name === from) return false;
+
+  const target = store[name] ?? [];
+  if (!target.some((entry) => sameItem(entry, id, mediaType))) store[name] = [item, ...target];
+  store[from] = store[from].filter((entry) => !sameItem(entry, id, mediaType));
+  if (store[from].length === 0) delete store[from];
+  writeStore(store);
+  return true;
+}
+
+export type FavoritesSort = 'added' | 'title' | 'year';
+
+/** Newest first keeps the saved order (titles are prepended when added). */
+export function sortFavorites<T extends { item: FavoriteEntry }>(
+  entries: T[],
+  sort: FavoritesSort,
+  locale: string
+): T[] {
+  if (sort === 'added') return entries;
+  const sorted = [...entries];
+  if (sort === 'title') {
+    const collator = new Intl.Collator(locale);
+    sorted.sort((left, right) => collator.compare(left.item.title, right.item.title));
+  } else {
+    sorted.sort((left, right) => (right.item.year || '').localeCompare(left.item.year || ''));
+  }
+  return sorted;
 }
