@@ -5,7 +5,6 @@
   import MovieCard from './MovieCard.svelte';
   import SearchSuggest from './SearchSuggest.svelte';
   import EmptyState from './EmptyState.svelte';
-  import { RECENT_RELEASE_DAYS } from '../lib/config';
   import {
     hiddenGenres,
     initializePreferences,
@@ -15,121 +14,51 @@
   import { TRANSLATION_LANGUAGES } from '../lib/translations';
   import { HIDEABLE_GENRES } from '../lib/genres';
   import { intlLocale, tr } from '../lib/i18n';
-  import { AGE_STEPS, normalizeAgeFilter } from '../lib/ageRating';
-  import { buildPaginationTokens, parsePositiveInteger } from '../lib/pagination';
+  import { AGE_STEPS } from '../lib/ageRating';
+  import { buildPaginationTokens } from '../lib/pagination';
+  import {
+    categoryOptions,
+    clearedFilters,
+    countActiveFilters,
+    countryOptions,
+    defaultFilters,
+    filtersFromParams,
+    filtersToParams,
+    movieGenres,
+    presetFilters,
+    presetOptions,
+    releaseRange,
+    shareableSearch,
+    tvGenres,
+    voteOptions,
+    type CatalogFilters,
+    type Category,
+    type DiscoverPayload,
+    type FilterPreset,
+    type ReleasePeriod
+  } from '../lib/catalog';
   import type { CatalogItem, PersonSummary } from '../lib/types';
   import { jobLabel } from '../lib/filmography';
   import { profileSrcset } from '../lib/images';
 
   const CLIENT_DEBUG = PUBLIC_DEBUG_LOGS;
 
-  type Category = '' | 'all' | 'movie' | 'cartoon' | 'tv';
+  const initial = defaultFilters();
 
-  interface DiscoverPayload {
-    page: number;
-    totalPages: number;
-    totalResults: number;
-    results: CatalogItem[];
-  }
-
-  type ReleasePeriod = 'all' | '7' | '30' | '90' | '120' | 'custom';
-  type FilterPreset = '' | 'adult' | 'family' | 'child12' | 'new' | 'documentary';
-
-  const releasePeriodOptions: ReleasePeriod[] = ['all', '7', '30', '90', '120', 'custom'];
-  const filterPresetOptions: FilterPreset[] = [
-    '',
-    'adult',
-    'family',
-    'child12',
-    'new',
-    'documentary'
-  ];
-
-  const categoryOptions: Array<{ value: Exclude<Category, ''>; uk: string; en: string }> = [
-    { value: 'all', uk: 'Усе', en: 'All' },
-    { value: 'movie', uk: 'Фільми', en: 'Movies' },
-    { value: 'cartoon', uk: 'Мультфільми', en: 'Cartoons' },
-    { value: 'tv', uk: 'Серіали', en: 'TV series' }
-  ];
-
-  const presetOptions: Array<{ value: Exclude<FilterPreset, ''>; uk: string; en: string }> = [
-    { value: 'new', uk: 'Новинки', en: 'New releases' },
-    { value: 'adult', uk: 'Всі фільми', en: 'All movies' },
-    { value: 'documentary', uk: 'Документалки', en: 'Documentaries' },
-    { value: 'family', uk: 'Для сім’ї', en: 'Family' },
-    { value: 'child12', uk: 'Дитина 12+', en: 'Kids 12+' }
-  ];
-
-  const movieGenres = [
-    { id: '', uk: 'Будь-який жанр', en: 'Any genre' },
-    { id: '28', uk: 'Бойовик', en: 'Action' },
-    { id: '35', uk: 'Комедія', en: 'Comedy' },
-    { id: '18', uk: 'Драма', en: 'Drama' },
-    { id: '14', uk: 'Фентезі', en: 'Fantasy' },
-    { id: '27', uk: 'Жахи', en: 'Horror' },
-    { id: '10749', uk: 'Романтика', en: 'Romance' },
-    { id: '878', uk: 'Наукова фантастика', en: 'Science fiction' },
-    { id: '53', uk: 'Трилер', en: 'Thriller' },
-    { id: '10751', uk: 'Сімейний', en: 'Family' },
-    { id: '99', uk: 'Документальний', en: 'Documentary' }
-  ];
-
-  const tvGenres = [
-    { id: '', uk: 'Будь-який жанр', en: 'Any genre' },
-    { id: '10759', uk: 'Бойовик і пригоди', en: 'Action & adventure' },
-    { id: '35', uk: 'Комедія', en: 'Comedy' },
-    { id: '18', uk: 'Драма', en: 'Drama' },
-    { id: '9648', uk: 'Містика', en: 'Mystery' },
-    { id: '10765', uk: 'Фантастика і фентезі', en: 'Sci-Fi & fantasy' },
-    { id: '16', uk: 'Анімація', en: 'Animation' }
-  ];
-
-  // Titles with only a handful of votes are mostly unreleased or obscure; hide them by default.
-  const DEFAULT_MIN_VOTES = '50';
-  const voteOptions = ['0', '10', '20', '50', '100', '200', '1000', '5000'];
-
-  const countryOptions = [
-    { code: 'UA', uk: 'Україна', en: 'Ukraine' },
-    { code: 'US', uk: 'США', en: 'USA' },
-    { code: 'GB', uk: 'Велика Британія', en: 'United Kingdom' },
-    { code: 'FR', uk: 'Франція', en: 'France' },
-    { code: 'DE', uk: 'Німеччина', en: 'Germany' },
-    { code: 'IT', uk: 'Італія', en: 'Italy' },
-    { code: 'ES', uk: 'Іспанія', en: 'Spain' },
-    { code: 'PL', uk: 'Польща', en: 'Poland' },
-    { code: 'SE', uk: 'Швеція', en: 'Sweden' },
-    { code: 'DK', uk: 'Данія', en: 'Denmark' },
-    { code: 'NO', uk: 'Норвегія', en: 'Norway' },
-    { code: 'CA', uk: 'Канада', en: 'Canada' },
-    { code: 'AU', uk: 'Австралія', en: 'Australia' },
-    { code: 'JP', uk: 'Японія', en: 'Japan' },
-    { code: 'KR', uk: 'Південна Корея', en: 'South Korea' },
-    { code: 'IN', uk: 'Індія', en: 'India' },
-    { code: 'TR', uk: 'Туреччина', en: 'Turkey' }
-  ];
-
-  const formatDate = (value: Date) => value.toISOString().slice(0, 10);
-
-  const today = new Date();
-  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- computed once, not state
-  const recentStart = new Date(today);
-  recentStart.setDate(today.getDate() - RECENT_RELEASE_DAYS);
-
-  let category: Category = $state('all');
-  let genre = $state('');
-  let minRating = $state('');
-  let minVotes = $state(DEFAULT_MIN_VOTES);
-  let year = $state('');
-  // Popular recent titles make a better first screen than raw newest releases (mostly unrated).
-  let sortBy = $state('popularity.desc');
-  let query = $state('');
-  let includeCountry = $state('');
-  let ageRating = $state('');
-  let releaseDateGte = $state(formatDate(recentStart));
-  let releaseDateLte = $state(formatDate(today));
-  let releasePeriod: ReleasePeriod = $state('120');
-  let limit = $state('20');
-  let preset: FilterPreset = $state('');
+  let category: Category = $state(initial.category);
+  let genre = $state(initial.genre);
+  let minRating = $state(initial.minRating);
+  let minVotes = $state(initial.minVotes);
+  let year = $state(initial.year);
+  let sortBy = $state(initial.sortBy);
+  let query = $state(initial.query);
+  let includeCountry = $state(initial.includeCountry);
+  let ageRating = $state(initial.ageRating);
+  let releaseDateGte = $state(initial.releaseDateGte);
+  let releaseDateLte = $state(initial.releaseDateLte);
+  let releasePeriod: ReleasePeriod = $state(initial.releasePeriod);
+  let limit = $state(initial.limit);
+  let preset: FilterPreset = $state(initial.preset);
 
   let results: CatalogItem[] = $state([]);
   let page = $state(1);
@@ -155,18 +84,7 @@
 
   let genreOptions = $derived(category === 'tv' ? tvGenres : movieGenres);
   let paginationTokens = $derived(buildPaginationTokens(page, totalPages));
-  let activeFilterCount = $derived(
-    [
-      genre,
-      minRating,
-      minVotes !== DEFAULT_MIN_VOTES ? minVotes : '',
-      year,
-      includeCountry,
-      ageRating,
-      releasePeriod !== 'all' ? releasePeriod : '',
-      $hiddenGenres.length ? 'hidden' : ''
-    ].filter(Boolean).length
-  );
+  let activeFilterCount = $derived(countActiveFilters(currentFilters(), $hiddenGenres.length));
   let locale = $derived($localeMode);
 
   function resetResults() {
@@ -175,20 +93,44 @@
     totalPages = 0;
   }
 
+  function currentFilters(): CatalogFilters {
+    return {
+      category,
+      genre,
+      minRating,
+      minVotes,
+      year,
+      sortBy,
+      query,
+      includeCountry,
+      ageRating,
+      releaseDateGte,
+      releaseDateLte,
+      releasePeriod,
+      limit,
+      preset
+    };
+  }
+
+  function setFilters(next: CatalogFilters) {
+    category = next.category;
+    genre = next.genre;
+    minRating = next.minRating;
+    minVotes = next.minVotes;
+    year = next.year;
+    sortBy = next.sortBy;
+    query = next.query;
+    includeCountry = next.includeCountry;
+    ageRating = next.ageRating;
+    releaseDateGte = next.releaseDateGte;
+    releaseDateLte = next.releaseDateLte;
+    releasePeriod = next.releasePeriod;
+    limit = next.limit;
+    preset = next.preset;
+  }
+
   function resetFilters() {
-    preset = '';
-    category = 'all';
-    genre = '';
-    minRating = '';
-    minVotes = DEFAULT_MIN_VOTES;
-    year = '';
-    sortBy = 'popularity.desc';
-    query = '';
-    includeCountry = '';
-    ageRating = '';
-    releasePeriod = 'all';
-    limit = '20';
-    onReleasePeriodChange();
+    setFilters(clearedFilters());
     showFilters = false;
     resetResults();
     void fetchData(1);
@@ -200,117 +142,33 @@
     );
   }
 
-  function applyPreset(value: FilterPreset) {
+  function applyPreset(value: Exclude<FilterPreset, ''>) {
     if (preset === value) {
       resetFilters();
       return;
     }
-
-    preset = value;
-    query = '';
-    year = '';
-    includeCountry = '';
-    // Presets browse the whole catalog by popularity; only "New releases" is limited in time.
-    sortBy = 'popularity.desc';
-    releasePeriod = 'all';
-
-    if (value === 'adult') {
-      category = 'movie';
-      genre = '';
-      minRating = '5';
-      minVotes = '50';
-      ageRating = '18';
-      limit = '20';
-    } else if (value === 'family') {
-      category = 'movie';
-      genre = '10751';
-      minRating = '6';
-      minVotes = '50';
-      ageRating = '6';
-      limit = '15';
-    } else if (value === 'child12') {
-      category = 'cartoon';
-      genre = '';
-      minRating = '6';
-      minVotes = '100';
-      ageRating = '12';
-      limit = '15';
-    } else if (value === 'new') {
-      category = 'all';
-      genre = '';
-      minRating = '5';
-      minVotes = '10';
-      ageRating = '';
-      sortBy = 'primary_release_date.desc';
-      releasePeriod = '120';
-      limit = '20';
-    } else if (value === 'documentary') {
-      category = 'movie';
-      genre = '99';
-      minRating = '5';
-      minVotes = '20';
-      ageRating = '';
-      limit = '20';
-    }
-
-    onReleasePeriodChange();
+    setFilters(presetFilters(currentFilters(), value));
     resetResults();
     void fetchData(1);
   }
 
-  function setPeriod(days: number) {
-    const end = new Date();
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local value, not component state
-    const start = new Date(end);
-    start.setDate(end.getDate() - days);
-    releaseDateGte = formatDate(start);
-    releaseDateLte = formatDate(end);
-  }
-
   function onReleasePeriodChange() {
-    if (releasePeriod === 'custom') return;
-    if (releasePeriod === 'all') {
-      releaseDateGte = '';
-      releaseDateLte = '';
-      return;
-    }
-    setPeriod(Number(releasePeriod));
+    const range = releaseRange(releasePeriod);
+    if (!range) return;
+    releaseDateGte = range.gte;
+    releaseDateLte = range.lte;
   }
 
   function buildParams(nextPage: number) {
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local value, not component state
-    const params = new URLSearchParams();
-    params.set('category', category);
-    params.set('page', String(nextPage));
-    params.set('sortBy', sortBy);
-    params.set('query', query.trim());
-    params.set('genre', genre);
-    params.set('minRating', minRating);
-    params.set('minVotes', minVotes);
-    params.set('year', year);
-    params.set('includeCountry', includeCountry.trim().toUpperCase());
-    params.set('locale', get(localeMode));
-    params.set('ageRating', ageRating);
-    params.set('releaseDateGte', releaseDateGte);
-    params.set('releaseDateLte', releaseDateLte);
-    params.set('releasePeriod', releasePeriod);
-    params.set('preset', preset);
-    params.set('limit', limit);
-    params.set('hideGenres', get(hiddenGenres).join(','));
-    return params;
+    return filtersToParams(currentFilters(), nextPage, {
+      locale: get(localeMode),
+      hiddenGenres: get(hiddenGenres)
+    });
   }
 
   function syncUrl(nextPage: number) {
     if (typeof window === 'undefined') return;
-    const params = buildParams(nextPage);
-    params.delete('locale');
-    // Hidden genres are a saved preference, not part of a shareable search.
-    params.delete('hideGenres');
-    // Keep shareable URLs short: drop empty values.
-    for (const [key, value] of [...params.entries()]) {
-      if (!value) params.delete(key);
-    }
-    const queryString = params.toString();
+    const queryString = shareableSearch(buildParams(nextPage));
     const url = queryString
       ? `${window.location.pathname}?${queryString}`
       : window.location.pathname;
@@ -319,48 +177,12 @@
 
   function readStateFromUrl() {
     if (typeof window === 'undefined') return 1;
-
-    const params = new URLSearchParams(window.location.search);
-    const categoryValue = params.get('category');
-    if (
-      categoryValue === 'all' ||
-      categoryValue === 'movie' ||
-      categoryValue === 'cartoon' ||
-      categoryValue === 'tv'
-    ) {
-      category = categoryValue;
-    }
-
-    genre = params.get('genre') ?? genre;
-    minRating = params.get('minRating') ?? minRating;
-    minVotes = params.get('minVotes') ?? minVotes;
-    year = params.get('year') ?? year;
-    sortBy = params.get('sortBy') ?? sortBy;
-    query = params.get('query') ?? query;
-    includeCountry = (params.get('includeCountry') ?? includeCountry).toUpperCase();
-    ageRating = params.has('ageRating') ? normalizeAgeFilter(params.get('ageRating')) : ageRating;
-    limit = params.get('limit') ?? limit;
-
-    const releasePeriodValue = params.get('releasePeriod') as ReleasePeriod | null;
-    if (releasePeriodValue && releasePeriodOptions.includes(releasePeriodValue)) {
-      releasePeriod = releasePeriodValue;
-    }
-
-    const presetValue = params.get('preset') as FilterPreset | null;
-    if (presetValue && filterPresetOptions.includes(presetValue)) {
-      preset = presetValue;
-    }
-
-    const dateFromParam = params.get('releaseDateGte');
-    const dateToParam = params.get('releaseDateLte');
-    if (dateFromParam !== null) releaseDateGte = dateFromParam;
-    if (dateToParam !== null) releaseDateLte = dateToParam;
-
-    if (!params.has('releaseDateGte') && !params.has('releaseDateLte')) {
-      onReleasePeriodChange();
-    }
-
-    return parsePositiveInteger(params.get('page'), 1);
+    const restored = filtersFromParams(
+      new URLSearchParams(window.location.search),
+      currentFilters()
+    );
+    setFilters(restored.filters);
+    return restored.page;
   }
 
   /** People matching the text query; loaded once per query and language, not per page. */

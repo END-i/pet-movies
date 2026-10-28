@@ -203,12 +203,14 @@
 
 - [x] Svelte 5 зі старим синтаксисом (`export let`, `$:`) → runes.
   - Зроблено (28.10): `migrate()` із `svelte/compiler` для всіх компонентів (`$props`, `$state`, `$derived`), заглушки `run()`/`preventDefault()` із `svelte/legacy` замінено на `$effect` (перезавантаження за мовою — через `untrack`) і звичайні обробники. Правила ESLint для Svelte знову ввімкнено.
-- [ ] `CatalogPage.svelte` (~700 рядків): винести пресети, стан фільтрів і синхронізацію з URL у `src/lib`.
+- [x] `CatalogPage.svelte` (~700 рядків): винести пресети, стан фільтрів і синхронізацію з URL у `src/lib`.
+  - Зроблено (28.10): `src/lib/catalog.ts` — списки опцій, таблиця пресетів (`presetFilters`), стани за замовчуванням і після скидання, діапазони дат, підрахунок активних фільтрів, фільтри ↔ URL (`filtersToParams`, `shareableSearch`, `filtersFromParams`); тести — `tests/unit/catalog.test.ts`. У компоненті лишились стан, завантаження й розмітка.
 - [x] Немає ESLint-конфігу, хоча залежності встановлено (`eslint`, `eslint-plugin-svelte`…) — додати конфіг за прикладом cards або прибрати залежності.
   - Зроблено (28.10): `eslint.config.js` (JS + TypeScript + Svelte + Prettier), `npm run lint`, входить у `npm run ci`. `.astro` перевіряє `astro check`. Правила для старого `$:` після переходу на runes знову ввімкнено (28.10).
 - [x] E2E на dev-сервері (SW вимкнений) — додати e2e на `build` з `context.setOffline(true)`.
   - Зроблено (28.10): проєкт `pwa-offline` у `playwright.config.ts` — production-збірка, справжній service worker, `tests/e2e/offline.spec.ts`: відвідана сторінка й улюблені відкриваються без сервера, нова сторінка — `/offline`. Нюанси: адреса `pwa.localhost` (Layout вимикає SW на localhost/127.0.0.1), повний Chromium (`channel: 'chromium'`: headless shell не дає SW контролювати сторінки), «офлайн» = тест зупиняє власний сервер (`context.setOffline` обриває навігацію ще до SW).
-- [ ] Немає компонентних тестів.
+- [x] Немає компонентних тестів.
+  - Зроблено (28.10): `tests/unit/components.test.ts` — `mount` зі `svelte` у jsdom (`@sveltejs/vite-plugin-svelte` у `vitest.config.ts`): `ReleaseBadge` (статуси, мова) і `MovieCard` (посилання, плашка перекладу за обраною мовою, ♡ зберігає й прибирає).
 - [x] Типи відповідей TMDB описані вручну в кожному роуті — винести в `src/lib/tmdb-types.ts`.
   - Зроблено (28.10): `src/lib/tmdb-types.ts` (`TmdbDetailsResponse`, `TmdbDiscoverResponse`, `TmdbPersonResponse`…); у роутах лишились лише їхні власні типи (`Enrichment`).
 - [ ] Ім’я пакета змінено на `pet-movies`; перевірити, що це не зламало нічого зовнішнього.

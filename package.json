@@ -30,6 +30,7 @@
     "@astrojs/check": "^0.9.12",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.58.2",
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@types/node": "^22.20.5",
     "@typescript-eslint/eslint-plugin": "^8.56.0",
     "@typescript-eslint/parser": "^8.56.0",
