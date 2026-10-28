@@ -12,7 +12,7 @@ export interface ReleaseDates {
   cinema?: string;
 }
 
-interface TmdbReleaseDates {
+export interface TmdbReleaseDates {
   results?: Array<{ release_dates?: Array<{ type?: number; release_date?: string }> }>;
 }
 

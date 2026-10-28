@@ -2,17 +2,7 @@ import type { APIRoute } from 'astro';
 import { makeImageUrl, tmdbRequest } from '../../../lib/tmdb';
 import { tmdbLanguage } from '../../../lib/i18n';
 import type { PersonSummary } from '../../../lib/types';
-
-interface PersonSearchResponse {
-  results?: Array<{
-    id: number;
-    name: string;
-    profile_path?: string | null;
-    known_for_department?: string;
-    popularity?: number;
-    known_for?: Array<{ title?: string; name?: string }>;
-  }>;
-}
+import type { TmdbPersonSearchResponse } from '../../../lib/tmdb-types';
 
 const MAX_PEOPLE = 12;
 
@@ -23,7 +13,7 @@ export const GET: APIRoute = async ({ url }) => {
   }
 
   try {
-    const data = await tmdbRequest<PersonSearchResponse>('/search/person', {
+    const data = await tmdbRequest<TmdbPersonSearchResponse>('/search/person', {
       query,
       include_adult: 'false',
       language: tmdbLanguage(url.searchParams.get('locale'))

@@ -208,7 +208,8 @@
   - Зроблено (28.10): `eslint.config.js` (JS + TypeScript + Svelte + Prettier), `npm run lint`, входить у `npm run ci`. `.astro` перевіряє `astro check`. Правила для старого `$:` після переходу на runes знову ввімкнено (28.10).
 - [ ] E2E на dev-сервері (SW вимкнений) — додати e2e на `build` з `context.setOffline(true)`.
 - [ ] Немає компонентних тестів.
-- [ ] Типи відповідей TMDB описані вручну в кожному роуті — винести в `src/lib/tmdb-types.ts`.
+- [x] Типи відповідей TMDB описані вручну в кожному роуті — винести в `src/lib/tmdb-types.ts`.
+  - Зроблено (28.10): `src/lib/tmdb-types.ts` (`TmdbDetailsResponse`, `TmdbDiscoverResponse`, `TmdbPersonResponse`…); у роутах лишились лише їхні власні типи (`Enrichment`).
 - [ ] Ім’я пакета змінено на `pet-movies`; перевірити, що це не зламало нічого зовнішнього.
 
 ## 7. Ухвалені рішення

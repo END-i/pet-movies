@@ -15,16 +15,10 @@ import {
   type TmdbListItem
 } from '../../../../lib/similar';
 import type { MediaType } from '../../../../lib/types';
+import type { TmdbSimilarSource } from '../../../../lib/tmdb-types';
 
 // Each candidate costs one cached keywords request.
 const MAX_CANDIDATES = 30;
-
-interface SimilarSource {
-  genres?: Array<{ id: number }>;
-  keywords?: { keywords?: Keyword[]; results?: Keyword[] };
-  recommendations?: { results?: TmdbListItem[] };
-  similar?: { results?: TmdbListItem[] };
-}
 
 export const GET: APIRoute = async ({ params, url }) => {
   const mediaType = params.mediaType as MediaType;
@@ -41,7 +35,7 @@ export const GET: APIRoute = async ({ params, url }) => {
       mediaType
     );
 
-    const source = await tmdbRequest<SimilarSource>(
+    const source = await tmdbRequest<TmdbSimilarSource>(
       `/${mediaType}/${id}`,
       { append_to_response: 'recommendations,similar,keywords', language },
       { ttlMs: TMDB_TTL.entity }

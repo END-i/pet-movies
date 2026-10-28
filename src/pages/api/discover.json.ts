@@ -19,51 +19,9 @@ import {
   tvRelease,
   type ReleaseDates
 } from '../../lib/releaseStatus';
-import { summarizeSeries, type SeriesInfo, type TmdbSeriesFields } from '../../lib/series';
+import { summarizeSeries, type SeriesInfo } from '../../lib/series';
 import { translatedLanguages } from '../../lib/translations';
-
-interface DiscoverResponse {
-  page: number;
-  total_pages: number;
-  total_results: number;
-  results: Array<{
-    id: number;
-    title?: string;
-    name?: string;
-    original_title?: string;
-    original_name?: string;
-    release_date?: string;
-    first_air_date?: string;
-    poster_path: string | null;
-    genre_ids?: number[];
-    overview: string;
-    vote_average: number;
-    vote_count: number;
-  }>;
-}
-
-interface EntityDetails extends TmdbSeriesFields {
-  title?: string;
-  name?: string;
-  overview?: string;
-  genres?: Array<{ name: string }>;
-  production_countries?: Array<{ name: string; iso_3166_1?: string }>;
-  origin_country?: string[];
-  credits?: {
-    cast?: Array<{ name: string }>;
-  };
-  release_dates?: Parameters<typeof summarizeReleaseDates>[0];
-  translations?: {
-    translations?: Array<{
-      iso_639_1: string;
-      data?: {
-        title?: string;
-        name?: string;
-        overview?: string;
-      };
-    }>;
-  };
-}
+import type { TmdbDiscoverResponse, TmdbEntityDetails } from '../../lib/tmdb-types';
 
 /** The part of `/{type}/{id}` the catalog needs; kept small so thousands fit in memory. */
 interface Enrichment {
@@ -91,7 +49,7 @@ async function loadEnrichment(
   language: string
 ): Promise<Enrichment> {
   return enrichmentCache.getOrLoad(`${mediaType}:${id}:${language}`, async () => {
-    const details = await tmdbRequest<EntityDetails>(
+    const details = await tmdbRequest<TmdbEntityDetails>(
       `/${mediaType}/${id}`,
       {
         append_to_response:
@@ -211,11 +169,11 @@ async function loadByConfig(args: {
   const endpoint = query
     ? `/search/${categoryConfig.mediaType}`
     : `/discover/${categoryConfig.mediaType}`;
-  const discovered = await tmdbRequest<DiscoverResponse>(endpoint, discoverParams);
+  const discovered = await tmdbRequest<TmdbDiscoverResponse>(endpoint, discoverParams);
 
   // `/search` ignores `without_genres`, so hidden genres are also filtered here.
   const today = isoDate(new Date());
-  const releaseOf = (item: DiscoverResponse['results'][number], dates: ReleaseDates) =>
+  const releaseOf = (item: TmdbDiscoverResponse['results'][number], dates: ReleaseDates) =>
     categoryConfig.mediaType === 'movie'
       ? movieRelease(dates, item.release_date, today)
       : tvRelease(item.first_air_date, today);

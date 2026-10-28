@@ -3,41 +3,10 @@ import { makeImageUrl, tmdbRequest, TMDB_DEBUG, TMDB_TTL } from '../../../lib/tm
 import { tmdbLanguage } from '../../../lib/i18n';
 import type { ActorCreditItem, ActorDetails } from '../../../lib/types';
 import { mergeCredits, roleForDepartment, sortCredits } from '../../../lib/filmography';
-
-interface TmdbCredit {
-  id: number;
-  title?: string;
-  original_title?: string;
-  release_date?: string;
-  name?: string;
-  original_name?: string;
-  first_air_date?: string;
-  poster_path?: string | null;
-  character?: string;
-  job?: string;
-  department?: string;
-  vote_average?: number;
-  vote_count?: number;
-}
+import type { TmdbCredit, TmdbPersonResponse } from '../../../lib/tmdb-types';
 
 // Enough for prolific people; the page shows them in chunks.
 const MAX_CREDITS = 240;
-
-interface PersonResponse {
-  id: number;
-  name: string;
-  gender?: number;
-  also_known_as?: string[];
-  biography?: string;
-  birthday?: string;
-  place_of_birth?: string;
-  known_for_department?: string;
-  popularity?: number;
-  profile_path?: string | null;
-  imdb_id?: string | null;
-  movie_credits?: { cast?: TmdbCredit[]; crew?: TmdbCredit[] };
-  tv_credits?: { cast?: TmdbCredit[]; crew?: TmdbCredit[] };
-}
 
 function calculateAge(birthday?: string): number | null {
   if (!birthday) return null;
@@ -94,7 +63,7 @@ function toCredit(
   };
 }
 
-function collectCredits(data: PersonResponse): ActorCreditItem[] {
+function collectCredits(data: TmdbPersonResponse): ActorCreditItem[] {
   const all: ActorCreditItem[] = [];
   for (const mediaType of ['movie', 'tv'] as const) {
     const source = mediaType === 'movie' ? data.movie_credits : data.tv_credits;
@@ -117,7 +86,7 @@ export const GET: APIRoute = async ({ params, url }) => {
       });
     }
 
-    const data = await tmdbRequest<PersonResponse>(
+    const data = await tmdbRequest<TmdbPersonResponse>(
       `/person/${id}`,
       {
         append_to_response: 'movie_credits,tv_credits',

@@ -9,102 +9,10 @@ import {
   summarizeReleaseDates,
   tvRelease
 } from '../../../../lib/releaseStatus';
-import { summarizeSeries, type TmdbSeriesFields } from '../../../../lib/series';
+import { summarizeSeries } from '../../../../lib/series';
 import type { WatchProvider } from '../../../../lib/types';
 import { translatedLanguages } from '../../../../lib/translations';
-
-interface TmdbProvider {
-  provider_id: number;
-  provider_name: string;
-  logo_path: string | null;
-}
-
-interface DetailsResponse extends TmdbSeriesFields {
-  id: number;
-  tagline?: string;
-  runtime?: number | null;
-  episode_run_time?: number[];
-  last_episode_to_air?: { runtime?: number | null } | null;
-  budget?: number;
-  revenue?: number;
-  created_by?: Array<{ id: number; name: string }>;
-  networks?: Array<{ name: string }>;
-  seasons?: Array<{
-    season_number: number;
-    name: string;
-    episode_count?: number;
-    air_date?: string | null;
-  }>;
-  'watch/providers'?: {
-    results?: Record<
-      string,
-      { link?: string; flatrate?: TmdbProvider[]; rent?: TmdbProvider[]; buy?: TmdbProvider[] }
-    >;
-  };
-  title?: string;
-  name?: string;
-  original_title?: string;
-  original_name?: string;
-  release_date?: string;
-  first_air_date?: string;
-  poster_path: string | null;
-  backdrop_path: string | null;
-  overview: string;
-  production_countries?: Array<{ name: string; iso_3166_1?: string }>;
-  genres?: Array<{ name: string }>;
-  adult?: boolean;
-  vote_average: number;
-  vote_count: number;
-  popularity: number;
-  external_ids?: {
-    imdb_id?: string;
-  };
-  credits?: {
-    cast?: Array<{
-      id: number;
-      name: string;
-      character: string;
-      profile_path: string | null;
-    }>;
-    crew?: Array<{ id: number; name: string; job?: string }>;
-  };
-  /** Series: cast of every season (`credits` has only the latest one). */
-  aggregate_credits?: {
-    cast?: Array<{
-      id: number;
-      name: string;
-      profile_path: string | null;
-      roles?: Array<{ character?: string }>;
-    }>;
-  };
-  release_dates?: {
-    results?: Array<{
-      iso_3166_1: string;
-      release_dates?: Array<{ certification?: string; type?: number; release_date?: string }>;
-    }>;
-  };
-  content_ratings?: {
-    results?: Array<{ iso_3166_1: string; rating?: string }>;
-  };
-  videos?: {
-    results?: Array<{
-      key: string;
-      site: string;
-      type: string;
-      official: boolean;
-    }>;
-  };
-  translations?: {
-    translations?: Array<{
-      iso_639_1: string;
-      data?: {
-        title?: string;
-        name?: string;
-        overview?: string;
-      };
-    }>;
-  };
-}
+import type { TmdbDetailsResponse, TmdbProvider } from '../../../../lib/tmdb-types';
 
 function toProviders(list: TmdbProvider[] | undefined): WatchProvider[] {
   return (list ?? []).map((provider) => ({
@@ -139,7 +47,7 @@ export const GET: APIRoute = async ({ params, url }) => {
     }
 
     const language = tmdbLanguage(url.searchParams.get('locale'));
-    const data = await tmdbRequest<DetailsResponse>(
+    const data = await tmdbRequest<TmdbDetailsResponse>(
       `/${mediaType}/${id}`,
       {
         append_to_response: `credits,videos,external_ids,translations,watch/providers,${
