@@ -11,10 +11,11 @@
     removeFromFavorites,
     toggleFavorite
   } from '../lib/favorites';
-  import { localeMode } from '../lib/preferences';
+  import { hiddenGenres, localeMode } from '../lib/preferences';
   import { tr } from '../lib/i18n';
   import { POSTER_SIZES, posterSrcset } from '../lib/images';
   import type { MovieDetails } from '../lib/types';
+  import type { SimilarPayload } from '../lib/similar';
   import ReleaseBadge from './ReleaseBadge.svelte';
   import { episodesLabel, runtimeLabel, seasonsLabel } from '../lib/series';
 
@@ -31,6 +32,7 @@
   let newCategory = '';
   let showTrailer = false;
   let loadedLocale = '';
+  let similar: SimilarPayload | null = null;
 
   $: locale = $localeMode;
   $: showOriginal = details?.originalTitle && details.originalTitle !== details.title;
@@ -76,6 +78,7 @@
       if (CLIENT_DEBUG) {
         console.log('[BROWSER][details][response]', details);
       }
+      void loadSimilar();
     } catch (err) {
       error = !navigator.onLine
         ? tr(get(localeMode), 'Немає з’єднання з інтернетом', 'You are offline')
@@ -84,6 +87,21 @@
           : tr(get(localeMode), 'Невідома помилка', 'Unknown error');
     } finally {
       loading = false;
+    }
+  }
+
+  // Loaded after the details so the page is never slower because of them; failures just hide the rows.
+  async function loadSimilar() {
+    similar = null;
+    const params = new URLSearchParams({
+      locale: loadedLocale,
+      hideGenres: get(hiddenGenres).join(',')
+    });
+    try {
+      const response = await fetch(`/api/similar/${mediaType}/${id}.json?${params}`);
+      if (response.ok) similar = (await response.json()) as SimilarPayload;
+    } catch {
+      similar = null;
     }
   }
 
@@ -481,6 +499,71 @@
           </div>
         </section>
       {/if}
+
+      {#if similar?.recommended.length}
+        <section aria-labelledby="recommended-title">
+          <h2 class="section-title" id="recommended-title">
+            {tr(locale, 'Рекомендуємо', 'Recommended')}
+          </h2>
+          <div class="h-scroll">
+            {#each similar.recommended as item (item.id)}
+              <a class="similar" href={`/details/${item.mediaType}/${item.id}`}>
+                <img
+                  src={item.poster ?? '/fallback-poster.svg'}
+                  srcset={posterSrcset(item.poster)}
+                  sizes={POSTER_SIZES.row}
+                  alt=""
+                  loading="lazy"
+                  width="132"
+                  height="198"
+                />
+                <strong>{item.title}</strong>
+                <small>
+                  {item.year || '—'}{#if item.voteAverage}&nbsp;· ★ {item.voteAverage.toFixed(
+                      1
+                    )}{/if}
+                </small>
+                {#if item.release && item.release.status !== 'online'}
+                  <ReleaseBadge release={item.release} {locale} />
+                {/if}
+              </a>
+            {/each}
+          </div>
+        </section>
+      {/if}
+
+      {#if similar?.topic.items.length}
+        <section aria-labelledby="topic-title">
+          <h2 class="section-title" id="topic-title">
+            {tr(locale, 'Схожі за темою', 'Similar topics')}
+          </h2>
+          <p class="topic-keywords">{similar.topic.keywords.join(' · ')}</p>
+          <div class="h-scroll">
+            {#each similar.topic.items as item (item.id)}
+              <a class="similar" href={`/details/${item.mediaType}/${item.id}`}>
+                <img
+                  src={item.poster ?? '/fallback-poster.svg'}
+                  srcset={posterSrcset(item.poster)}
+                  sizes={POSTER_SIZES.row}
+                  alt=""
+                  loading="lazy"
+                  width="132"
+                  height="198"
+                />
+                <strong>{item.title}</strong>
+                <small>
+                  {item.year || '—'}{#if item.voteAverage}&nbsp;· ★ {item.voteAverage.toFixed(
+                      1
+                    )}{/if}
+                </small>
+                {#if item.release && item.release.status !== 'online'}
+                  <ReleaseBadge release={item.release} {locale} />
+                {/if}
+              </a>
+            {/each}
+          </div>
+        </section>
+      {/if}
     </div>
   {/if}
 </main>
@@ -821,6 +904,45 @@
   .actor strong {
     font-size: 0.86rem;
     line-height: 1.25;
+  }
+
+  .similar {
+    display: grid;
+    /* Long single words ("Перезавантаження") must not widen the tile. */
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3px;
+    align-content: start;
+    color: var(--text);
+  }
+
+  .similar > :global(.release) {
+    justify-self: start;
+  }
+
+  .similar img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
+    border-radius: 10px;
+    background: var(--surface-2);
+  }
+
+  .similar strong {
+    font-size: 0.84rem;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  .similar small {
+    color: var(--muted);
+    font-size: 0.76rem;
+  }
+
+  .topic-keywords {
+    margin: -6px 0 10px;
+    color: var(--muted);
+    font-size: 0.82rem;
   }
 
   .actor small {

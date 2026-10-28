@@ -335,3 +335,29 @@ test('text search also finds people and links to their page', async ({ page }) =
   await people.getByRole('link', { name: /Кіану Рівз/ }).click();
   await expect(page).toHaveURL(/\/person\/6384/);
 });
+
+test('details page shows recommended and same-topic titles', async ({ page }) => {
+  await mockApi(page);
+  await gotoHydrated(page, '/details/movie/603');
+
+  const recommended = page.getByRole('region', { name: 'Рекомендуємо' });
+  await expect(
+    recommended.getByRole('link', { name: /Матриця: Перезавантаження/ })
+  ).toHaveAttribute('href', '/details/movie/604');
+  // Only "not at home yet" titles get a badge in these rows.
+  await expect(recommended.getByText(/^Анонс/)).toHaveCount(1);
+  await expect(recommended.getByText('Онлайн')).toHaveCount(0);
+
+  const topic = page.getByRole('region', { name: 'Схожі за темою' });
+  await expect(topic.getByText('simulated reality · dystopia')).toBeVisible();
+  await expect(topic.getByRole('link', { name: /Тринадцятий поверх/ })).toBeVisible();
+  await expectNoHorizontalScroll(page);
+});
+
+test('similar titles are requested with the hidden genres', async ({ page }) => {
+  await mockApi(page);
+  await page.addInitScript(() => localStorage.setItem('pet-hidden-genres', 'horror'));
+  const request = page.waitForRequest('**/api/similar/**');
+  await gotoHydrated(page, '/details/movie/603');
+  expect(new URL((await request).url()).searchParams.get('hideGenres')).toBe('horror');
+});

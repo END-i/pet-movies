@@ -7,6 +7,7 @@ export const POSTER_SIZES = {
   card: '(min-width: 720px) 120px, 96px',
   details: '(min-width: 720px) 220px, 116px',
   credit: '(min-width: 720px) 160px, 34vw',
+  row: '132px',
   thumb: '64px'
 } as const;
 

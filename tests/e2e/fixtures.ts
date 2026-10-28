@@ -71,6 +71,43 @@ export const movieDetails = {
   }
 };
 
+export const similarTitles = {
+  recommended: [
+    {
+      id: 604,
+      mediaType: 'movie',
+      title: 'Матриця: Перезавантаження',
+      year: '2003',
+      poster: null,
+      voteAverage: 7.1,
+      release: { status: 'online' }
+    },
+    {
+      id: 1999,
+      mediaType: 'movie',
+      title: 'Майбутній фільм',
+      year: '2027',
+      poster: null,
+      voteAverage: 0,
+      release: { status: 'upcoming', date: '2027-03-01' }
+    }
+  ],
+  topic: {
+    keywords: ['simulated reality', 'dystopia'],
+    items: [
+      {
+        id: 1091,
+        mediaType: 'movie',
+        title: 'Тринадцятий поверх',
+        year: '1999',
+        poster: null,
+        voteAverage: 7,
+        release: { status: 'online' }
+      }
+    ]
+  }
+};
+
 export const person = {
   id: 6384,
   name: 'Кіану Рівз',
@@ -162,6 +199,7 @@ export async function mockApi(page: Page, options: { totalPages?: number } = {})
   });
   await page.route('**/api/details/**', (route) => json(route, movieDetails));
   await page.route('**/api/person/**', (route) => json(route, person));
+  await page.route('**/api/similar/**', (route) => json(route, similarTitles));
   await page.route('**/api/search/people.json*', (route) => {
     const query = new URL(route.request().url()).searchParams.get('query') ?? '';
     return json(route, {
