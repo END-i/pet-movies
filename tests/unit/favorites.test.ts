@@ -1,16 +1,20 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   addToFavorites,
+  buildFavoritesBackup,
   categoriesContaining,
   countFavorites,
   DEFAULT_FAVORITES_CATEGORY,
   deleteCategory,
   ensureCategory,
   FAVORITES_STORAGE_KEY,
+  favoritesBackupFileName,
+  importFavorites,
   isFavorite,
   isInCategory,
   listCategories,
   loadFavorites,
+  parseFavoritesBackup,
   removeFromFavorites,
   toggleFavorite
 } from '../../src/lib/favorites';
@@ -106,5 +110,36 @@ describe('favorites storage', () => {
     addToFavorites('Швидкі', dark);
     expect(isFavorite(70523, 'tv')).toBe(true);
     expect(isFavorite(603, 'movie')).toBe(false);
+  });
+});
+
+describe('favorites backup', () => {
+  beforeEach(() => localStorage.clear());
+
+  it('round-trips through a file and names it by date', () => {
+    addToFavorites('Класика', matrix);
+    const text = JSON.stringify(buildFavoritesBackup(loadFavorites()));
+    expect(parseFavoritesBackup(text)).toEqual({ Класика: [matrix] });
+    expect(favoritesBackupFileName(new Date('2026-10-28T10:00:00Z'))).toBe(
+      'pet-movies-favorites-2026-10-28.json'
+    );
+  });
+
+  it('rejects other files and drops broken entries', () => {
+    expect(parseFavoritesBackup('{"cards": []}')).toBeNull();
+    expect(parseFavoritesBackup('nope')).toBeNull();
+    const text = JSON.stringify({
+      app: 'pet-movies-favorites',
+      favorites: { '  Нове  ': [matrix, { id: 'x' }, { id: 1, mediaType: 'book', title: 'B' }] }
+    });
+    expect(parseFavoritesBackup(text)).toEqual({ Нове: [matrix] });
+  });
+
+  it('merges without duplicates or removals', () => {
+    addToFavorites('Класика', matrix);
+    expect(importFavorites({ Класика: [matrix, dark], Порожня: [] })).toBe(1);
+    expect(loadFavorites()['Класика']).toHaveLength(2);
+    expect(listCategories(loadFavorites())).toContain('Порожня');
+    expect(importFavorites({ Класика: [dark] })).toBe(0);
   });
 });

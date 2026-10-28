@@ -439,3 +439,43 @@ test('German interface: catalog, badges, plurals and the nav', async ({ page }) 
   await expect(page.getByRole('heading', { name: 'Besetzung' })).toBeVisible();
   await expect(page.getByText('2 Std. 16 Min.')).toBeVisible();
 });
+
+test('favorites can be exported to a file and imported back', async ({ page }) => {
+  await mockApi(page);
+  await page.addInitScript(() => {
+    if (!localStorage.getItem('seeded')) {
+      localStorage.setItem('seeded', '1');
+      localStorage.setItem(
+        'movie-finder-favorites-v1',
+        JSON.stringify({
+          Класика: [{ id: 603, mediaType: 'movie', title: 'Матриця', poster: null, year: '1999' }]
+        })
+      );
+    }
+  });
+  await gotoHydrated(page, '/favorites');
+
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Експортувати' }).click();
+  const file = await (await download).path();
+  expect((await download).suggestedFilename()).toMatch(
+    /^pet-movies-favorites-\d{4}-\d{2}-\d{2}\.json$/
+  );
+
+  await page.evaluate(() => localStorage.setItem('movie-finder-favorites-v1', '{}'));
+  await page.reload();
+  await page.waitForFunction(() => !document.querySelector('astro-island[ssr]'));
+  await expect(page.getByRole('link', { name: 'Матриця' })).toHaveCount(0);
+
+  await page.getByLabel('Файл з улюбленими').setInputFiles(file);
+  await expect(page.getByRole('status')).toHaveText('Додано: 1');
+  await expect(page.getByRole('link', { name: 'Матриця' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Класика/ })).toBeVisible();
+
+  await page.getByLabel('Файл з улюбленими').setInputFiles({
+    name: 'other.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from('{"cards": []}')
+  });
+  await expect(page.getByRole('alert')).toContainText('Це не файл з улюбленими');
+});

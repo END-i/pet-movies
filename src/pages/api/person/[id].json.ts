@@ -139,10 +139,11 @@ export const GET: APIRoute = async ({ params, url }) => {
       age,
       segment,
       photo: makeImageUrl(data.profile_path ?? null, 'h632'),
-      biography: data.biography?.trim() || 'Біографія поки відсутня.',
-      birthday: data.birthday ?? 'Невідомо',
-      placeOfBirth: data.place_of_birth ?? 'Невідомо',
-      knownForDepartment: data.known_for_department ?? 'Невідомо',
+      // Empty when unknown: the page hides the row, so no server text needs translating.
+      biography: data.biography?.trim() || '',
+      birthday: data.birthday ?? '',
+      placeOfBirth: data.place_of_birth ?? '',
+      knownForDepartment: data.known_for_department ?? '',
       popularity: data.popularity ?? 0,
       imdbId: data.imdb_id ?? null,
       credits

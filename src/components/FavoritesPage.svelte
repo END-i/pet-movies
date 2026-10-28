@@ -1,12 +1,16 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import {
+    buildFavoritesBackup,
     countFavorites,
     deleteCategory,
     ensureCategory,
     FAVORITES_STORAGE_KEY,
+    favoritesBackupFileName,
+    importFavorites,
     listCategories,
     loadFavorites,
+    parseFavoritesBackup,
     removeFromFavorites
   } from '../lib/favorites';
   import { localeMode } from '../lib/preferences';
@@ -21,6 +25,9 @@
   let selectedCategory = '';
   let newCategory = '';
   let hydrated = false;
+  let backupMessage = '';
+  let backupError = false;
+  let importInput: HTMLInputElement;
 
   $: locale = $localeMode;
   $: total = countFavorites(store);
@@ -99,6 +106,43 @@
     deleteCategory(selectedCategory);
     selectedCategory = '';
     sync();
+  }
+
+  function exportFavorites() {
+    const blob = new Blob([JSON.stringify(buildFavoritesBackup(store), null, 2)], {
+      type: 'application/json'
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = favoritesBackupFileName();
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    backupError = false;
+    backupMessage = trf(locale, 'Збережено файл: {count}', 'Saved a file: {count}', {
+      count: total
+    });
+  }
+
+  async function onImportFile(event: Event) {
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    const incoming = parseFavoritesBackup(await file.text());
+    if (!incoming) {
+      backupError = true;
+      backupMessage = tr(
+        locale,
+        'Це не файл з улюбленими PET Movies.',
+        'This is not a PET Movies favorites file.'
+      );
+      return;
+    }
+    const added = importFavorites(incoming);
+    sync();
+    backupError = false;
+    backupMessage = trf(locale, 'Додано: {count}', 'Added: {count}', { count: added });
   }
 
   onMount(() => {
@@ -242,9 +286,63 @@
       {/each}
     </section>
   {/if}
+
+  <section class="backup" aria-labelledby="backup-title">
+    <h2 id="backup-title" class="section-title">{tr(locale, 'Резервна копія', 'Backup')}</h2>
+    <p class="hint">
+      {tr(
+        locale,
+        'Улюблені зберігаються лише в цьому браузері. Збережіть файл, щоб не втратити їх.',
+        'Favorites are stored only in this browser. Save a file so you do not lose them.'
+      )}
+    </p>
+    <div class="backup-actions">
+      <button type="button" class="btn" on:click={exportFavorites} disabled={!hydrated || !total}>
+        {tr(locale, 'Експортувати', 'Export')}
+      </button>
+      <button type="button" class="btn" on:click={() => importInput.click()} disabled={!hydrated}>
+        {tr(locale, 'Імпортувати', 'Import')}
+      </button>
+      <input
+        class="visually-hidden"
+        type="file"
+        accept="application/json,.json"
+        tabindex="-1"
+        aria-label={tr(locale, 'Файл з улюбленими', 'Favorites file')}
+        bind:this={importInput}
+        on:change={onImportFile}
+      />
+    </div>
+    {#if backupMessage}
+      <p class="hint" class:error={backupError} role={backupError ? 'alert' : 'status'}>
+        {backupMessage}
+      </p>
+    {/if}
+  </section>
 </main>
 
 <style>
+  .backup {
+    display: grid;
+    gap: 8px;
+    margin-top: 24px;
+  }
+
+  .backup .section-title,
+  .backup .hint {
+    margin: 0;
+  }
+
+  .backup .error {
+    color: var(--danger);
+  }
+
+  .backup-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
   .head {
     display: flex;
     align-items: baseline;

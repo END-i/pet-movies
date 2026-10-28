@@ -129,18 +129,18 @@
           <p class="muted original">{actor.originalName}</p>
         {/if}
         <dl>
-          {#if actor.birthday && actor.birthday !== 'Невідомо'}
+          {#if actor.birthday}
             <dt>{tr(locale, 'Народження', 'Born')}</dt>
             <dd>
               {actor.birthday}{#if actor.age !== null}&nbsp;({actor.age}
                 {tr(locale, 'р.', 'y.o.')}){/if}
             </dd>
           {/if}
-          {#if actor.placeOfBirth && actor.placeOfBirth !== 'Невідомо'}
+          {#if actor.placeOfBirth}
             <dt>{tr(locale, 'Місце', 'Place')}</dt>
             <dd>{actor.placeOfBirth}</dd>
           {/if}
-          {#if actor.knownForDepartment && actor.knownForDepartment !== 'Невідомо'}
+          {#if actor.knownForDepartment}
             <dt>{tr(locale, 'Відомий за', 'Known for')}</dt>
             <dd>{jobLabel(actor.knownForDepartment, locale)}</dd>
           {/if}
