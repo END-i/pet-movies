@@ -43,7 +43,7 @@ test('search by title sends the query and updates the URL', async ({ page }) => 
   const { discoverRequests } = await mockApi(page);
   await gotoHydrated(page, '/');
 
-  const search = page.getByRole('searchbox', { name: 'Пошук фільмів, серіалів і людей' });
+  const search = page.getByRole('combobox', { name: 'Пошук фільмів, серіалів і людей' });
   await search.fill('matrix');
   await search.press('Enter');
 
@@ -324,8 +324,8 @@ test('text search also finds people and links to their page', async ({ page }) =
   await gotoHydrated(page, '/');
   await expect(page.getByRole('heading', { name: 'Люди' })).toHaveCount(0);
 
-  await page.getByRole('searchbox').fill('Кіану');
-  await page.getByRole('searchbox').press('Enter');
+  await page.getByRole('combobox').fill('Кіану');
+  await page.getByRole('combobox').press('Enter');
 
   const people = page.getByRole('region', { name: 'Люди' });
   await expect(people.getByRole('link', { name: /Кіану Рівз/ })).toBeVisible();
