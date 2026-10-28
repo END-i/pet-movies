@@ -212,6 +212,9 @@ test('details page shows info, saves to a new category and links to the actor', 
   await expect(page.getByRole('link', { name: /Матриця/ })).toBeVisible();
 
   const credits = page.locator('.credit strong');
+  // One tile per title in "All", with every role on it.
+  await expect(credits.filter({ hasText: 'Матриця' })).toHaveCount(1);
+  await expect(page.getByText('Нео · Продюсер')).toBeVisible();
   await page.getByRole('combobox').selectOption({ label: 'Новіші' });
   await expect(credits).toHaveText(['Джон Вік', 'Людина Ци', 'Матриця']);
 

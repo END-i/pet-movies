@@ -37,9 +37,9 @@ export function mergeCredits(credits: ActorCreditItem[]): ActorCreditItem[] {
 // Ratings from a handful of votes are noise; such titles go after well-rated ones.
 const MIN_VOTES_FOR_RATING = 20;
 
-export function sortCredits(credits: ActorCreditItem[], sort: CreditSort): ActorCreditItem[] {
+export function sortCredits<T extends ActorCreditItem>(credits: T[], sort: CreditSort): T[] {
   const list = [...credits];
-  const byYear = (direction: 1 | -1) => (a: ActorCreditItem, b: ActorCreditItem) => {
+  const byYear = (direction: 1 | -1) => (a: T, b: T) => {
     if (!a.year && !b.year) return 0;
     if (!a.year) return 1;
     if (!b.year) return -1;
@@ -61,6 +61,46 @@ export function sortCredits(credits: ActorCreditItem[], sort: CreditSort): Actor
     default:
       return list.sort((a, b) => b.voteCount - a.voteCount || b.year.localeCompare(a.year));
   }
+}
+
+/** A credit as shown: `character` is the cast role (or ''), `jobs` the crew jobs (or ''). */
+export type DisplayCredit = ActorCreditItem & { jobs: string };
+
+/**
+ * Credits for one role, or for "all": then each title appears once, with the cast role and
+ * every crew job combined (an actor who also directed and wrote a film is one tile, not three).
+ */
+export function creditsForRole(
+  credits: ActorCreditItem[],
+  role: CreditRole | 'all'
+): DisplayCredit[] {
+  const toDisplay = (credit: ActorCreditItem): DisplayCredit =>
+    credit.role === 'cast'
+      ? { ...credit, jobs: '' }
+      : { ...credit, character: '', jobs: credit.character };
+
+  if (role !== 'all') {
+    return credits.filter((credit) => credit.role === role).map(toDisplay);
+  }
+
+  const byTitle = new Map<string, DisplayCredit>();
+  for (const credit of credits) {
+    const key = `${credit.mediaType}:${credit.id}`;
+    const entry = toDisplay(credit);
+    const existing = byTitle.get(key);
+    if (!existing) {
+      byTitle.set(key, entry);
+      continue;
+    }
+    if (entry.character && !existing.character) existing.character = entry.character;
+    if (entry.jobs) {
+      const jobs = new Set([...existing.jobs.split(', '), ...entry.jobs.split(', ')]);
+      jobs.delete('');
+      existing.jobs = [...jobs].join(', ');
+    }
+    if (credit.role === 'cast') existing.role = 'cast';
+  }
+  return [...byTitle.values()];
 }
 
 export function countByRole(credits: ActorCreditItem[]): Partial<Record<CreditRole, number>> {

@@ -7,6 +7,7 @@
   import type { ActorDetails, CreditRole } from '../lib/types';
   import {
     countByRole,
+    creditsForRole,
     CREDIT_ROLES,
     jobLabel,
     sortCredits,
@@ -40,10 +41,7 @@
   $: bioIsLong = bio.length > BIO_PREVIEW_CHARS;
   $: roleCounts = countByRole(actor?.credits ?? []);
   $: availableRoles = CREDIT_ROLES.filter((item) => roleCounts[item]);
-  $: filteredCredits = sortCredits(
-    (actor?.credits ?? []).filter((credit) => role === 'all' || credit.role === role),
-    sort
-  );
+  $: filteredCredits = sortCredits(creditsForRole(actor?.credits ?? [], role), sort);
   $: visibleCredits = filteredCredits.slice(0, shown);
   $: (role, sort, (shown = CREDITS_PAGE));
   $: bioText = bioExpanded || !bioIsLong ? bio : `${bio.slice(0, BIO_PREVIEW_CHARS).trimEnd()}…`;
@@ -208,7 +206,7 @@
           </label>
         </div>
         <div class="credits">
-          {#each visibleCredits as credit (`${credit.mediaType}-${credit.id}-${credit.role}`)}
+          {#each visibleCredits as credit (`${credit.mediaType}-${credit.id}-${role}`)}
             <a class="credit" href={`/details/${credit.mediaType}/${credit.id}`}>
               <img
                 src={credit.poster ?? '/fallback-poster.svg'}
@@ -225,11 +223,11 @@
                     >★ {credit.voteAverage.toFixed(1)}</span
                   >{/if}
               </small>
-              {#if credit.character}
+              {#if credit.character || credit.jobs}
                 <small class="role"
-                  >{credit.role === 'cast'
-                    ? credit.character
-                    : jobLabel(credit.character, locale)}</small
+                  >{[credit.character, credit.jobs ? jobLabel(credit.jobs, locale) : '']
+                    .filter(Boolean)
+                    .join(' · ')}</small
                 >
               {/if}
             </a>

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   countByRole,
+  creditsForRole,
   jobLabel,
   mergeCredits,
   roleForDepartment,
@@ -61,5 +62,27 @@ describe('filmography', () => {
     expect(jobLabel('Director, Screenplay', 'uk')).toBe('Режисер, Сценарій');
     expect(jobLabel('Gaffer', 'uk')).toBe('Gaffer');
     expect(jobLabel('Director', 'en')).toBe('Director');
+  });
+
+  it('shows each title once in "all", combining the cast role and crew jobs', () => {
+    const list = [
+      credit({ id: 7, role: 'cast', character: 'Who Am I' }),
+      credit({ id: 7, role: 'writing', character: 'Screenplay' }),
+      credit({ id: 7, role: 'directing', character: 'Director' }),
+      credit({ id: 8, role: 'production', character: 'Producer' }),
+      credit({ id: 8, role: 'production', character: 'Executive Producer' }),
+      credit({ id: 7, mediaType: 'tv', role: 'cast', character: 'Self' })
+    ];
+
+    const all = creditsForRole(list, 'all');
+    expect(all).toHaveLength(3);
+    expect(all[0]).toMatchObject({ id: 7, mediaType: 'movie', character: 'Who Am I' });
+    expect(all[0].jobs).toBe('Screenplay, Director');
+    expect(all[1]).toMatchObject({ id: 8, character: '', jobs: 'Producer, Executive Producer' });
+
+    const directing = creditsForRole(list, 'directing');
+    expect(directing).toEqual([
+      expect.objectContaining({ id: 7, character: '', jobs: 'Director' })
+    ]);
   });
 });

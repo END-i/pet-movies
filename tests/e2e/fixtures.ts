@@ -121,6 +121,18 @@ export const person = {
       character: 'Director',
       voteAverage: 6.1,
       voteCount: 700
+    },
+    {
+      id: 603,
+      mediaType: 'movie',
+      title: 'Матриця',
+      originalTitle: 'The Matrix',
+      year: '1999',
+      poster: null,
+      role: 'production',
+      character: 'Producer',
+      voteAverage: 8.2,
+      voteCount: 25000
     }
   ]
 };
