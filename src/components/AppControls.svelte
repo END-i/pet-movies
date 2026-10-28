@@ -56,6 +56,7 @@
 
 <style>
   .app-header {
+    view-transition-name: app-header;
     position: sticky;
     top: 0;
     z-index: 40;

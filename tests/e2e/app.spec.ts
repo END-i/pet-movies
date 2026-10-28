@@ -549,3 +549,43 @@ test('favorites: mark watched, hide watched, sort, move and rename', async ({ pa
     'true'
   );
 });
+
+test('favorites: swiping a title left removes it, a short swipe does not', async ({ page }) => {
+  await mockApi(page);
+  await page.addInitScript(() => {
+    if (localStorage.getItem('seeded')) return;
+    localStorage.setItem('seeded', '1');
+    localStorage.setItem(
+      'movie-finder-favorites-v1',
+      JSON.stringify({
+        Загальне: [
+          { id: 603, mediaType: 'movie', title: 'Матриця', poster: null, year: '1999' },
+          { id: 70523, mediaType: 'tv', title: 'Dark', poster: null, year: '2017' }
+        ]
+      })
+    );
+  });
+  await gotoHydrated(page, '/favorites');
+  const item = page.locator('.fav-item').filter({ hasText: 'Матриця' });
+  const box = (await item.boundingBox())!;
+  const y = box.y + box.height / 2;
+
+  async function swipe(distance: number) {
+    const base = { pointerId: 7, pointerType: 'touch', bubbles: true, clientY: y };
+    await item.dispatchEvent('pointerdown', { ...base, clientX: box.x + box.width - 20 });
+    for (let step = 1; step <= 5; step += 1) {
+      await item.dispatchEvent('pointermove', {
+        ...base,
+        clientX: box.x + box.width - 20 - (distance * step) / 5
+      });
+    }
+    await item.dispatchEvent('pointerup', { ...base, clientX: box.x + box.width - 20 - distance });
+  }
+
+  await swipe(box.width * 0.2);
+  await page.waitForTimeout(300);
+  await expect(page.locator('.fav-item h2')).toHaveText(['Матриця', 'Dark']);
+
+  await swipe(box.width * 0.6);
+  await expect(page.locator('.fav-item h2')).toHaveText(['Dark']);
+});

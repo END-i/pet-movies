@@ -22,6 +22,8 @@
   import { intlLocale, tr, trf } from '../lib/i18n';
   import { POSTER_SIZES, posterSrcset } from '../lib/images';
   import type { FavoriteEntry, FavoritesStore } from '../lib/types';
+  import EmptyState from './EmptyState.svelte';
+  import { swipeToRemove } from '../lib/swipe';
 
   type DisplayEntry = { category: string; item: FavoriteEntry };
 
@@ -298,6 +300,7 @@
     <div class="skeleton" style="height: 120px"></div>
   {:else if displayEntries.length === 0}
     <div class="panel empty">
+      <EmptyState kind="favorites" />
       <p class="hint">
         {selectedCategory
           ? tr(locale, 'Категорія порожня.', 'This category is empty.')
@@ -314,7 +317,11 @@
   {:else}
     <section class="list">
       {#each displayEntries as entry (`${entry.item.mediaType}-${entry.item.id}`)}
-        <article class="fav-item" class:watched={entry.item.watched}>
+        <article
+          class="fav-item"
+          class:watched={entry.item.watched}
+          use:swipeToRemove={{ onSwipe: () => removeItem(entry) }}
+        >
           <a
             class="poster"
             href={`/details/${entry.item.mediaType}/${entry.item.id}`}

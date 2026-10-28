@@ -358,3 +358,16 @@ h3 {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Page-to-page cross-fade (cross-document View Transitions; ignored by browsers without them).
+   Header and bottom nav carry their own names, so they stay put instead of fading. */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 180ms;
+}

@@ -4,6 +4,7 @@
   import { onMount } from 'svelte';
   import MovieCard from './MovieCard.svelte';
   import SearchSuggest from './SearchSuggest.svelte';
+  import EmptyState from './EmptyState.svelte';
   import { RECENT_RELEASE_DAYS } from '../lib/config';
   import {
     hiddenGenres,
@@ -661,6 +662,7 @@
     </div>
   {:else if loadedOnce && results.length === 0}
     <div class="panel state">
+      <EmptyState kind="search" />
       <p class="hint">
         {tr(
           locale,
