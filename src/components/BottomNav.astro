@@ -1,32 +1,35 @@
-<script lang="ts">
-  import { localeMode } from '../lib/preferences';
-  import { tr } from '../lib/i18n';
+---
+// Static on purpose: no hydration, so nothing re-renders or shifts after the page loads.
+// Labels switch language via `html[lang]`, which is set before the first paint.
+interface Props {
+  active?: 'search' | 'favorites' | null;
+}
 
-  export let active: 'search' | 'favorites' | null = null;
-</script>
+const { active = null } = Astro.props;
+---
 
-<nav class="bottom-nav" aria-label={tr($localeMode, 'Основна навігація', 'Main navigation')}>
+<nav class="bottom-nav" aria-label="Основна навігація">
   <a
     href="/"
-    class:active={active === 'search'}
+    class:list={{ active: active === 'search' }}
     aria-current={active === 'search' ? 'page' : undefined}
   >
     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-      <path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14ZM20 20l-3.5-3.5" />
+      <path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14ZM20 20l-3.5-3.5"></path>
     </svg>
-    <span>{tr($localeMode, 'Пошук', 'Search')}</span>
+    <span class="t-uk">Пошук</span>
+    <span class="t-en">Search</span>
   </a>
   <a
     href="/favorites"
-    class:active={active === 'favorites'}
+    class:list={{ active: active === 'favorites' }}
     aria-current={active === 'favorites' ? 'page' : undefined}
   >
     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-      <path
-        d="M12 20.5s-7.5-4.6-7.5-10.1A4.4 4.4 0 0 1 12 7.6a4.4 4.4 0 0 1 7.5 2.8c0 5.5-7.5 10.1-7.5 10.1Z"
-      />
+      <path d="M12 20.5s-7.5-4.6-7.5-10.1A4.4 4.4 0 0 1 12 7.6a4.4 4.4 0 0 1 7.5 2.8c0 5.5-7.5 10.1-7.5 10.1Z"></path>
     </svg>
-    <span>{tr($localeMode, 'Улюблені', 'Favorites')}</span>
+    <span class="t-uk">Улюблені</span>
+    <span class="t-en">Favorites</span>
   </a>
 </nav>
 
@@ -62,6 +65,7 @@
   }
 
   svg {
+    flex: none;
     fill: none;
     stroke: currentColor;
     stroke-width: 1.8;
@@ -72,6 +76,11 @@
   a.active svg {
     fill: currentColor;
     fill-opacity: 0.18;
+  }
+
+  :global(html[lang='en']) .t-uk,
+  :global(html:not([lang='en'])) .t-en {
+    display: none;
   }
 
   @media (min-width: 900px) {

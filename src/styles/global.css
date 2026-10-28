@@ -43,8 +43,12 @@
   --radius: 14px;
   --safe-top: env(safe-area-inset-top);
   --safe-bottom: env(safe-area-inset-bottom);
-  /* The bottom nav may overlap the home-indicator zone a little; keeps its height steady. */
-  --nav-safe: max(0px, calc(env(safe-area-inset-bottom) - 18px));
+  /*
+   * In a browser tab the bottom inset changes as the browser's own toolbar shows/hides, which
+   * made the nav jump between long and short pages. Only the installed app gets the (stable)
+   * home-indicator inset.
+   */
+  --nav-safe: 0px;
   --header-h: 46px;
   --nav-h: 50px;
 }
@@ -115,11 +119,19 @@ h3 {
 
 /* Page container */
 
+@media (display-mode: standalone) {
+  :root {
+    --nav-safe: max(0px, calc(env(safe-area-inset-bottom) - 12px));
+  }
+}
+
 .page {
   width: min(1120px, 100%);
   margin: 0 auto;
   padding: 12px 16px 24px;
   display: grid;
+  /* minmax(0, …): wide rows (actors, trailer) must scroll inside, not stretch the page. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
 }
 

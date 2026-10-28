@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { gotoHydrated, mockApi } from './fixtures';
+import { gotoHydrated, mockApi, movieDetails } from './fixtures';
 
 async function expectNoHorizontalScroll(page: Page) {
   const overflow = await page.evaluate(
@@ -196,6 +196,9 @@ test('language and theme switches persist across reloads', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Змінити мову на English' }).click();
   await expect(page.getByRole('heading', { name: 'What to watch?' })).toBeVisible();
+  const nav = page.getByRole('navigation', { name: 'Основна навігація' });
+  await expect(nav.getByRole('link', { name: 'Favorites' })).toBeVisible();
+  await expect(nav.getByText('Улюблені')).toBeHidden();
 
   await page.getByRole('button', { name: 'Switch to light theme' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
@@ -204,6 +207,7 @@ test('language and theme switches persist across reloads', async ({ page }) => {
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   await expect(page.getByRole('heading', { name: 'What to watch?' })).toBeVisible();
+  await expect(nav.getByRole('link', { name: 'Search' })).toBeVisible();
 });
 
 test('API error shows a retry button', async ({ page }) => {
@@ -247,4 +251,32 @@ test('presets search the whole catalog, only "New releases" is recent', async ({
   await presets.getByRole('button', { name: 'Новинки' }).click();
   await expect.poll(() => discoverRequests.at(-1)?.searchParams.get('releasePeriod')).toBe('120');
   expect(discoverRequests.at(-1)?.searchParams.get('releaseDateGte')).not.toBe('');
+});
+
+test('details page with a trailer and many actors fits the screen width', async ({ page }) => {
+  await mockApi(page);
+  const actors = Array.from({ length: 12 }, (_, index) => ({
+    id: 100 + index,
+    name: `Актор з дуже довгим іменем ${index + 1}`,
+    character: `Роль номер ${index + 1}`,
+    photo: null
+  }));
+  await page.route('**/api/details/**', (route) =>
+    route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ ...movieDetails, actors, trailerKey: 'abc123' })
+    })
+  );
+  await page.route('https://i.ytimg.com/**', (route) => route.abort());
+  await gotoHydrated(page, '/details/movie/603');
+
+  await expect(page.getByRole('button', { name: 'Відтворити трейлер' })).toBeVisible();
+  await expectNoHorizontalScroll(page);
+  const widths = await page.evaluate(() =>
+    [...document.querySelectorAll('main .page, .video-wrap, .overview')].map(
+      (element) => element.getBoundingClientRect().right
+    )
+  );
+  const viewport = page.viewportSize()!.width;
+  for (const right of widths) expect(right).toBeLessThanOrEqual(viewport);
 });
