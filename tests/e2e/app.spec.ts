@@ -43,7 +43,7 @@ test('search by title sends the query and updates the URL', async ({ page }) => 
   const { discoverRequests } = await mockApi(page);
   await gotoHydrated(page, '/');
 
-  const search = page.getByRole('searchbox', { name: 'Пошук за назвою' });
+  const search = page.getByRole('searchbox', { name: 'Пошук фільмів, серіалів і людей' });
   await search.fill('matrix');
   await search.press('Enter');
 
@@ -314,4 +314,21 @@ test('details page with a trailer and many actors fits the screen width', async 
   );
   const viewport = page.viewportSize()!.width;
   for (const right of widths) expect(right).toBeLessThanOrEqual(viewport);
+});
+
+test('text search also finds people and links to their page', async ({ page }) => {
+  await mockApi(page);
+  await gotoHydrated(page, '/');
+  await expect(page.getByRole('heading', { name: 'Люди' })).toHaveCount(0);
+
+  await page.getByRole('searchbox').fill('Кіану');
+  await page.getByRole('searchbox').press('Enter');
+
+  const people = page.getByRole('region', { name: 'Люди' });
+  await expect(people.getByRole('link', { name: /Кіану Рівз/ })).toBeVisible();
+  await expect(people.getByText('Акторство · Матриця')).toBeVisible();
+  await expectNoHorizontalScroll(page);
+
+  await people.getByRole('link', { name: /Кіану Рівз/ }).click();
+  await expect(page).toHaveURL(/\/person\/6384/);
 });

@@ -49,6 +49,15 @@ export interface ActorCreditItem {
   voteCount: number;
 }
 
+export interface PersonSummary {
+  id: number;
+  name: string;
+  photo: string | null;
+  /** TMDB department in English ("Acting", "Directing"…). */
+  department: string;
+  knownFor: string[];
+}
+
 export interface ActorDetails {
   id: number;
   name: string;

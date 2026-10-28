@@ -9,7 +9,9 @@
   import { tr } from '../lib/i18n';
   import { AGE_STEPS, normalizeAgeFilter } from '../lib/ageRating';
   import { buildPaginationTokens, parsePositiveInteger } from '../lib/pagination';
-  import type { CatalogItem } from '../lib/types';
+  import type { CatalogItem, PersonSummary } from '../lib/types';
+  import { jobLabel } from '../lib/filmography';
+  import { profileSrcset } from '../lib/images';
 
   const CLIENT_DEBUG = PUBLIC_DEBUG_LOGS;
 
@@ -132,6 +134,8 @@
   let appliedLocale = get(localeMode);
   let requestId = 0;
   let resultsAnchor: HTMLElement | null = null;
+  let people: PersonSummary[] = [];
+  let peopleKey = '';
 
   $: genreOptions = category === 'tv' ? tvGenres : movieGenres;
   $: paginationTokens = buildPaginationTokens(page, totalPages);
@@ -339,8 +343,34 @@
     return parsePositiveInteger(params.get('page'), 1);
   }
 
+  /** People matching the text query; loaded once per query and language, not per page. */
+  async function loadPeople() {
+    const text = query.trim();
+    const key = `${get(localeMode)}:${text}`;
+    if (key === peopleKey) return;
+    peopleKey = key;
+
+    if (text.length < 2) {
+      people = [];
+      return;
+    }
+
+    try {
+      const params = new URLSearchParams({ query: text, locale: get(localeMode) });
+      const response = await fetch(`/api/search/people.json?${params.toString()}`);
+      const payload = response.ok
+        ? ((await response.json()) as { results: PersonSummary[] })
+        : { results: [] };
+      // A newer query may have started while this one was loading.
+      if (key === peopleKey) people = payload.results;
+    } catch {
+      if (key === peopleKey) people = [];
+    }
+  }
+
   async function fetchData(nextPage = 1) {
     if (!category) return;
+    void loadPeople();
 
     const currentRequest = ++requestId;
     loading = true;
@@ -460,13 +490,13 @@
       <path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14ZM20 20l-3.5-3.5" />
     </svg>
     <label class="visually-hidden" for="catalog-query"
-      >{tr(locale, 'Пошук за назвою', 'Search by title')}</label
+      >{tr(locale, 'Пошук фільмів, серіалів і людей', 'Search movies, series and people')}</label
     >
     <input
       id="catalog-query"
       type="search"
       bind:value={query}
-      placeholder={tr(locale, 'Назва фільму чи серіалу', 'Movie or series title')}
+      placeholder={tr(locale, 'Фільм, серіал або актор', 'Movie, series or actor')}
       enterkeyhint="search"
       autocomplete="off"
     />
@@ -512,6 +542,34 @@
       </button>
     {/each}
   </div>
+
+  {#if people.length && query.trim()}
+    <section class="people" aria-labelledby="people-title">
+      <h2 id="people-title" class="section-title">{tr(locale, 'Люди', 'People')}</h2>
+      <div class="h-scroll">
+        {#each people as person (person.id)}
+          <a class="person" href={`/person/${person.id}`}>
+            <img
+              src={person.photo ?? '/fallback-person.svg'}
+              srcset={profileSrcset(person.photo)}
+              sizes="72px"
+              alt=""
+              width="72"
+              height="72"
+              loading="lazy"
+            />
+            <strong>{person.name}</strong>
+            <small>
+              {[person.department ? jobLabel(person.department, locale) : '', ...person.knownFor]
+                .filter(Boolean)
+                .slice(0, 2)
+                .join(' · ')}
+            </small>
+          </a>
+        {/each}
+      </div>
+    </section>
+  {/if}
 
   <div bind:this={resultsAnchor} class="results-anchor"></div>
 
@@ -1072,5 +1130,45 @@
       border-bottom: 1px solid var(--border);
       animation: none;
     }
+  }
+
+  .people .section-title {
+    margin: 0 0 8px;
+  }
+
+  .people .h-scroll {
+    grid-auto-columns: 96px;
+  }
+
+  .person {
+    display: grid;
+    justify-items: center;
+    gap: 4px;
+    text-align: center;
+    color: var(--text);
+  }
+
+  .person img {
+    width: 72px;
+    height: 72px;
+    border-radius: 999px;
+    object-fit: cover;
+    background: var(--surface-2);
+  }
+
+  .person strong {
+    font-size: 0.82rem;
+    line-height: 1.2;
+  }
+
+  .person small {
+    color: var(--muted);
+    font-size: 0.72rem;
+    line-height: 1.2;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 </style>

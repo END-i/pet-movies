@@ -150,6 +150,22 @@ export async function mockApi(page: Page, options: { totalPages?: number } = {})
   });
   await page.route('**/api/details/**', (route) => json(route, movieDetails));
   await page.route('**/api/person/**', (route) => json(route, person));
+  await page.route('**/api/search/people.json*', (route) => {
+    const query = new URL(route.request().url()).searchParams.get('query') ?? '';
+    return json(route, {
+      results: /кіану|keanu/i.test(query)
+        ? [
+            {
+              id: 6384,
+              name: 'Кіану Рівз',
+              photo: null,
+              department: 'Acting',
+              knownFor: ['Матриця', 'Джон Вік']
+            }
+          ]
+        : []
+    });
+  });
   // Keep tests offline from external image CDNs.
   await page.route('https://image.tmdb.org/**', (route) => route.abort());
 
