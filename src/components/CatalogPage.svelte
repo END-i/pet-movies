@@ -141,6 +141,10 @@
   let appliedLocale = get(localeMode);
   let requestId = 0;
   let resultsAnchor: HTMLElement | null = null;
+  // Phones load the next page on scroll instead of paginating; `firstPage` is where the list starts.
+  let phone = false;
+  let firstPage = 1;
+  let appending = false;
   let people: PersonSummary[] = [];
   let peopleKey = '';
   let suggest: SearchSuggest;
@@ -378,12 +382,13 @@
     }
   }
 
-  async function fetchData(nextPage = 1) {
+  async function fetchData(nextPage = 1, { append = false } = {}) {
     if (!category) return;
-    void loadPeople();
+    if (!append) void loadPeople();
 
     const currentRequest = ++requestId;
     loading = true;
+    appending = append;
     error = '';
 
     try {
@@ -409,12 +414,22 @@
         console.log('[BROWSER][discover][response]', payload);
       }
 
-      results = payload.results;
+      if (append) {
+        // Movie and TV pages can overlap when results shift between requests.
+        const seen = new Set(results.map((item) => `${item.mediaType}-${item.id}`));
+        results = [
+          ...results,
+          ...payload.results.filter((item) => !seen.has(`${item.mediaType}-${item.id}`))
+        ];
+      } else {
+        results = payload.results;
+        firstPage = payload.page;
+        syncUrl(payload.page);
+      }
       page = payload.page;
       totalPages = payload.totalPages;
       totalResults = payload.totalResults;
       loadedOnce = true;
-      syncUrl(payload.page);
     } catch (err) {
       if (currentRequest !== requestId) return;
       const offline = typeof navigator !== 'undefined' && !navigator.onLine;
@@ -460,6 +475,24 @@
     resultsAnchor?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  $: canLoadMore = phone && loadedOnce && !error && page < totalPages;
+
+  function loadMore() {
+    if (loading || !canLoadMore) return;
+    void fetchData(page + 1, { append: true });
+  }
+
+  function observeSentinel(node: HTMLElement) {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) loadMore();
+      },
+      { rootMargin: '600px 0px' }
+    );
+    observer.observe(node);
+    return { destroy: () => observer.disconnect() };
+  }
+
   function onWindowScroll() {
     showScrollTop = window.scrollY > 600;
   }
@@ -478,15 +511,24 @@
     const initialPage = readStateFromUrl();
     void fetchData(initialPage);
 
+    const phoneQuery = window.matchMedia('(max-width: 759px)');
+    const onPhoneChange = () => (phone = phoneQuery.matches);
+    onPhoneChange();
+    phoneQuery.addEventListener('change', onPhoneChange);
+
     onWindowScroll();
     window.addEventListener('scroll', onWindowScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onWindowScroll);
+    return () => {
+      window.removeEventListener('scroll', onWindowScroll);
+      phoneQuery.removeEventListener('change', onPhoneChange);
+    };
   });
 
   $: if ($localeMode !== appliedLocale) {
     appliedLocale = $localeMode;
     if (loadedOnce && category) {
-      void fetchData(page);
+      // On phones the list may hold several pages; reload it from its first one.
+      void fetchData(phone ? firstPage : page);
     }
   }
 
@@ -633,18 +675,30 @@
   {:else if results.length}
     <p class="hint summary">
       {tr(locale, 'Знайдено', 'Found')}: {totalResults.toLocaleString(intlLocale(locale))}
-      {#if totalPages > 1}
+      {#if totalPages > 1 && !phone}
         · {tr(locale, 'сторінка', 'page')} {page} / {totalPages}
       {/if}
     </p>
 
-    <section class="results" class:dimmed={loading} aria-busy={loading}>
+    <section class="results" class:dimmed={loading && !appending} aria-busy={loading}>
       {#each results as item (`${item.mediaType}-${item.id}`)}
         <MovieCard {item} />
       {/each}
     </section>
 
-    {#if totalPages > 1}
+    {#if phone}
+      {#if canLoadMore}
+        <!-- Re-created per page: an observer fires only on changes, and after a short page
+             the sentinel may still be in view. -->
+        {#key page}
+          <div class="load-more" use:observeSentinel>
+            <button type="button" class="btn" on:click={loadMore} disabled={loading}>
+              {loading ? '…' : tr(locale, 'Показати ще', 'Show more')}
+            </button>
+          </div>
+        {/key}
+      {/if}
+    {:else if totalPages > 1}
       <nav class="pagination" aria-label={tr(locale, 'Сторінки результатів', 'Result pages')}>
         <button
           type="button"
@@ -996,6 +1050,12 @@
     display: grid;
     justify-items: start;
     gap: 10px;
+  }
+
+  .load-more {
+    display: grid;
+    justify-items: center;
+    padding: 4px 0 12px;
   }
 
   .pagination {

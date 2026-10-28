@@ -192,11 +192,20 @@ export async function mockApi(page: Page, options: { totalPages?: number } = {})
           item.originalTitle.toLowerCase().includes(query.toLowerCase())
         )
       : catalogItems;
+    const page = Number(url.searchParams.get('page') ?? '1');
     return json(route, {
-      page: Number(url.searchParams.get('page') ?? '1'),
+      page,
       totalPages: query ? 1 : (options.totalPages ?? 3),
       totalResults: query ? results.length : 42,
-      results
+      // Later pages get their own ids, as TMDB would return other titles.
+      results:
+        page > 1
+          ? results.map((item) => ({
+              ...item,
+              id: item.id + page * 100000,
+              title: `${item.title} ${page}`
+            }))
+          : results
     });
   });
   await page.route('**/api/details/**', (route) => json(route, movieDetails));

@@ -13,11 +13,11 @@ test('home shows catalog results on a phone without horizontal scroll', async ({
   await gotoHydrated(page, '/');
 
   await expect(page.getByRole('heading', { name: 'Що подивитися?' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Матриця' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Темрява' })).toBeVisible();
-  await expect(page.getByTitle('Немає перекладу: українська')).toHaveText(/UA/);
-  await expect(page.getByText('Онлайн', { exact: true })).toBeVisible();
-  await expect(page.getByText(/^Анонс · 10 січ/)).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Матриця', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Темрява', exact: true })).toBeVisible();
+  await expect(page.getByTitle('Немає перекладу: українська').first()).toHaveText(/UA/);
+  await expect(page.getByText('Онлайн', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(/^Анонс · 10 січ/).first()).toBeVisible();
   await expectNoHorizontalScroll(page);
 });
 
@@ -83,13 +83,32 @@ test('filters open in a sheet and apply with an active-filter badge', async ({ p
   await expect(page.getByRole('button', { name: 'Фільтри' })).toContainText(/\d/);
 });
 
-test('pagination moves to the next page', async ({ page }) => {
+test('on a phone, scrolling down loads the next pages into the same list', async ({ page }) => {
+  const { discoverRequests } = await mockApi(page, { totalPages: 3 });
+  await gotoHydrated(page, '/');
+  await expect(page.getByRole('navigation', { name: 'Сторінки результатів' })).toHaveCount(0);
+
+  // Two cards do not fill the screen, so the next pages load as the end comes into view.
+  await page.mouse.wheel(0, 4000);
+  await expect(page.getByRole('link', { name: 'Матриця 2' })).toBeVisible();
+  await page.mouse.wheel(0, 4000);
+  await expect(page.getByRole('link', { name: 'Матриця 3' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Матриця', exact: true })).toBeVisible();
+  expect(discoverRequests.map((url) => url.searchParams.get('page'))).toEqual(['1', '2', '3']);
+  // Last page: nothing more to load.
+  await expect(page.getByRole('button', { name: 'Показати ще' })).toHaveCount(0);
+  await expectNoHorizontalScroll(page);
+});
+
+test('on a wide screen, pagination moves to the next page', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 900 });
   const { discoverRequests } = await mockApi(page, { totalPages: 3 });
   await gotoHydrated(page, '/');
 
   await page.getByRole('button', { name: 'Наступна сторінка' }).click();
   await expect.poll(() => discoverRequests.at(-1)?.searchParams.get('page')).toBe('2');
-  await expect(page.getByText('2 / 3', { exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Матриця 2' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Матриця', exact: true })).toHaveCount(0);
 });
 
 test('heart toggles a title in favorites and favorites page lists it', async ({ page }) => {
@@ -372,7 +391,7 @@ test('similar titles are requested with the hidden genres', async ({ page }) => 
 });
 
 test('the translation badge follows the chosen language', async ({ page }) => {
-  await mockApi(page);
+  await mockApi(page, { totalPages: 1 });
   await gotoHydrated(page, '/');
   await expect(page.getByTitle('Немає перекладу: українська')).toHaveCount(1);
 
@@ -426,8 +445,8 @@ test('German interface: catalog, badges, plurals and the nav', async ({ page }) 
   await expect(page.locator('html')).toHaveAttribute('lang', 'de');
   await expect(page.getByRole('heading', { name: 'Was schauen?' })).toBeVisible();
   await expect(page.getByRole('combobox', { name: 'Sprache' })).toHaveValue('de');
-  await expect(page.getByText('Streaming', { exact: true })).toBeVisible();
-  await expect(page.getByTitle('Keine Übersetzung: Ukrainisch')).toHaveCount(1);
+  await expect(page.getByText('Streaming', { exact: true }).first()).toBeVisible();
+  await expect(page.getByTitle('Keine Übersetzung: Ukrainisch').first()).toBeVisible();
   const nav = page.getByRole('navigation', { name: 'Основна навігація' });
   await expect(nav.getByRole('link', { name: 'Favoriten' })).toBeVisible();
   await expect(nav.getByText('Favorites')).toBeHidden();
