@@ -140,7 +140,9 @@
 - [ ] Ручна перевірка на реальних iPhone і Android: встановлення, запуск з іконки, офлайн (відкрита раніше сторінка, улюблені, `/offline` для нової сторінки), оновлення версії.
 - [x] Видалити невикористане або підключити: `/api/collections.json`, `/api/collection/[id].json`, `/api/person/popular.json` (UI їх не викликає), `public/logo.svg`, `public/favicon.ico`.
   - Зроблено (28.10): видалено колекції (`/api/collections.json`, `/api/collection/[id].json`, `src/lib/collections.ts`, типи), `/api/person/popular.json`, `public/logo.svg`. `favicon.ico` лишився — браузери запитують його самі.
-- [ ] `npm audit` — під час встановлення були попередження, переглянути.
+- [x] `npm audit` — під час встановлення були попередження, переглянути.
+  - Зроблено (28.10): `npm audit fix` + оновлення на **Astro 7** (`astro` 7.4, `@astrojs/svelte` 9, `@astrojs/vercel` 11, `@astrojs/node` 11) — закрило критичну й високі вразливості самого Astro та адаптерів (зокрема SSRF через Host і `x-astro-path` у Vercel). `@vite-pwa/astro` 1.2 офіційно підтримує лише Astro ≤5, тому в `package.json` є `overrides` (збірка, `sw.js` і e2e перевірені). Залишились транзитивні залежності інструментів Vercel/Svelte (`zod`, `path-to-regexp`, `deepmerge`), що працюють під час збірки. Коли вийде `@vite-pwa/astro` з підтримкою Astro 7 — прибрати `overrides`.
+  - Astro 7 сам запускає `astro dev` у фоні, якщо його викликає AI-агент; у `playwright.config.ts` для цього `--ignore-lock`.
 
 ### 3.2 Продуктивність і трафік (важливо для мобільного інтернету)
 
