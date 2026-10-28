@@ -10,6 +10,8 @@ export interface CatalogItem {
   title: string;
   originalTitle: string;
   hasUkrainianTranslation: boolean;
+  /** Language codes with a translated name or description (see `src/lib/translations.ts`). */
+  translations?: string[];
   year: string;
   poster: string | null;
   countries: string[];
@@ -102,6 +104,7 @@ export interface MovieDetails {
   title: string;
   originalTitle: string;
   hasUkrainianTranslation: boolean;
+  translations?: string[];
   year: string;
   poster: string | null;
   backdrop: string | null;

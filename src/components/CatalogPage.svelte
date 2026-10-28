@@ -4,7 +4,13 @@
   import { onMount } from 'svelte';
   import MovieCard from './MovieCard.svelte';
   import { RECENT_RELEASE_DAYS } from '../lib/config';
-  import { hiddenGenres, initializePreferences, localeMode } from '../lib/preferences';
+  import {
+    hiddenGenres,
+    initializePreferences,
+    localeMode,
+    translationPreference
+  } from '../lib/preferences';
+  import { TRANSLATION_LANGUAGES } from '../lib/translations';
   import { HIDEABLE_GENRES } from '../lib/genres';
   import { tr } from '../lib/i18n';
   import { AGE_STEPS, normalizeAgeFilter } from '../lib/ageRating';
@@ -819,6 +825,22 @@
         </label>
       </div>
 
+      <label class="translation-pref">
+        {tr(locale, 'Позначати, якщо немає перекладу', 'Flag titles without a translation')}
+        <select class="input" bind:value={$translationPreference}>
+          {#each TRANSLATION_LANGUAGES as language (language.code)}
+            <option value={language.code}>{tr(locale, language.uk, language.en)}</option>
+          {/each}
+        </select>
+        <small class="hint">
+          {tr(
+            locale,
+            'Червона плашка з кодом мови — у TMDB немає назви чи опису цією мовою.',
+            'A red badge with the language code: TMDB has no title or description in it.'
+          )}
+        </small>
+      </label>
+
       <fieldset class="hidden-genres">
         <legend>{tr(locale, 'Не показувати', 'Hide genres')}</legend>
         <div class="genre-toggles">
@@ -1081,9 +1103,11 @@
     text-decoration: line-through;
   }
 
-  .hidden-genres .hint {
+  .hidden-genres .hint,
+  .translation-pref .hint {
     margin: 0;
     font-size: 0.8rem;
+    font-weight: 400;
   }
 
   .filters label {

@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { isFavorite as isSaved, toggleFavorite as toggleSaved } from '../lib/favorites';
-  import { localeMode } from '../lib/preferences';
+  import { localeMode, translationPreference } from '../lib/preferences';
+  import { lacksTranslation, translationLanguage } from '../lib/translations';
   import { tr } from '../lib/i18n';
   import { POSTER_SIZES, posterSrcset } from '../lib/images';
   import type { CatalogItem } from '../lib/types';
@@ -18,6 +19,9 @@
   $: posterSrc = !posterFailed && item.poster ? item.poster : FALLBACK_POSTER;
   $: href = `/details/${item.mediaType}/${item.id}`;
   $: showOriginal = item.originalTitle && item.originalTitle !== item.title;
+  $: missing = lacksTranslation(item, $translationPreference)
+    ? translationLanguage($translationPreference)
+    : null;
   $: meta = [item.year, item.countries.slice(0, 2).join(', ')].filter(Boolean).join(' · ');
 
   function refreshFavoriteState() {
@@ -66,9 +70,11 @@
       <p class="original">{item.originalTitle}</p>
     {/if}
 
+    <!-- Plain text, not flex: a wrapped line must not start with the "·" separator. -->
     <p class="meta">
-      {#if item.voteCount > 0}<span class="rating">★ {item.voteAverage.toFixed(1)}</span>{/if}
-      {#if meta}<span>· {meta}</span>{/if}
+      {#if item.voteCount > 0}<span class="rating">★ {item.voteAverage.toFixed(1)}</span>{meta
+          ? '\u00a0· '
+          : ''}{/if}{meta}
     </p>
 
     {#if item.genres.length}
@@ -79,16 +85,21 @@
       <p class="overview">{item.overview}</p>
     {/if}
 
-    {#if item.release || item.series || (!item.hasUkrainianTranslation && $localeMode === 'uk')}
+    {#if item.release || item.series || missing}
       <p class="tags">
         <ReleaseBadge release={item.release} series={item.series} locale={$localeMode} />
         {#if item.series?.seasons}
           <span class="seasons">{seasonsLabel(item.series.seasons, $localeMode)}</span>
         {/if}
-        {#if !item.hasUkrainianTranslation && $localeMode === 'uk'}
-          <span class="no-ua" title="Немає українського перекладу">
-            <span aria-hidden="true">UA</span>
-            <span class="visually-hidden">Немає українського перекладу</span>
+        {#if missing}
+          {@const text = tr(
+            $localeMode,
+            `Немає перекладу: ${missing.uk.toLowerCase()}`,
+            `No ${missing.en} translation`
+          )}
+          <span class="no-translation" title={text}>
+            <span aria-hidden="true">{missing.badge}</span>
+            <span class="visually-hidden">{text}</span>
           </span>
         {/if}
       </p>
@@ -198,12 +209,6 @@
     white-space: nowrap;
   }
 
-  .meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-  }
-
   .overview {
     display: -webkit-box;
     -webkit-line-clamp: 3;
@@ -227,15 +232,16 @@
     font-weight: 600;
   }
 
-  .no-ua {
-    padding: 2px 6px;
+  /* Bright on purpose: the main reason to skip a title for some viewers. */
+  .no-translation {
+    padding: 2px 7px;
     border-radius: 999px;
-    border: 1px solid var(--border);
-    color: var(--muted);
+    /* Fixed red: white text keeps 4.5:1 contrast in both themes. */
+    background: #c81e1e;
+    color: #fff;
     font-size: 0.72rem;
-    font-weight: 700;
+    font-weight: 800;
     text-decoration: line-through;
-    text-decoration-color: var(--danger);
     text-decoration-thickness: 2px;
   }
 

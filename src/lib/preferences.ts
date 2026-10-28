@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
 import { parseHiddenGenres } from './genres';
+import { parseTranslationLanguage } from './translations';
 
 export type ThemeMode = 'dark' | 'light';
 export type LocaleMode = 'uk' | 'en';
@@ -7,6 +8,7 @@ export type LocaleMode = 'uk' | 'en';
 export const THEME_STORAGE_KEY = 'pet-theme-mode';
 export const LOCALE_STORAGE_KEY = 'pet-locale-mode';
 export const HIDDEN_GENRES_STORAGE_KEY = 'pet-hidden-genres';
+export const TRANSLATION_STORAGE_KEY = 'pet-translation-language';
 
 const isBrowser = () => typeof window !== 'undefined';
 
@@ -39,6 +41,11 @@ export const hiddenGenres = writable<string[]>(
   isBrowser() ? parseHiddenGenres(readStorage(HIDDEN_GENRES_STORAGE_KEY)) : []
 );
 
+/** Language the "no translation" badge checks (see `src/lib/translations.ts`). */
+export const translationPreference = writable<string>(
+  parseTranslationLanguage(isBrowser() ? readStorage(TRANSLATION_STORAGE_KEY) : null)
+);
+
 let initialized = false;
 
 export function initializePreferences() {
@@ -59,4 +66,5 @@ export function initializePreferences() {
   });
 
   hiddenGenres.subscribe((keys) => writeStorage(HIDDEN_GENRES_STORAGE_KEY, keys.join(',')));
+  translationPreference.subscribe((code) => writeStorage(TRANSLATION_STORAGE_KEY, code));
 }

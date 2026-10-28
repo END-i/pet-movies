@@ -11,7 +11,8 @@
     removeFromFavorites,
     toggleFavorite
   } from '../lib/favorites';
-  import { hiddenGenres, localeMode } from '../lib/preferences';
+  import { hiddenGenres, localeMode, translationPreference } from '../lib/preferences';
+  import { lacksTranslation, translationLanguage } from '../lib/translations';
   import { tr } from '../lib/i18n';
   import { POSTER_SIZES, posterSrcset } from '../lib/images';
   import type { MovieDetails } from '../lib/types';
@@ -298,8 +299,15 @@
         </div>
       {/if}
 
-      {#if !details.hasUkrainianTranslation && locale === 'uk'}
-        <span class="badge">Немає українського перекладу</span>
+      {#if lacksTranslation(details, $translationPreference)}
+        {@const language = translationLanguage($translationPreference)}
+        <span class="no-translation">
+          {tr(
+            locale,
+            `Немає перекладу: ${language.uk.toLowerCase()}`,
+            `No ${language.en} translation`
+          )}
+        </span>
       {/if}
 
       {#if details.tagline}
@@ -904,6 +912,17 @@
   .actor strong {
     font-size: 0.86rem;
     line-height: 1.25;
+  }
+
+  .no-translation {
+    justify-self: start;
+    padding: 4px 10px;
+    border-radius: 999px;
+    /* Fixed red: white text keeps 4.5:1 contrast in both themes. */
+    background: #c81e1e;
+    color: #fff;
+    font-size: 0.82rem;
+    font-weight: 700;
   }
 
   .similar {

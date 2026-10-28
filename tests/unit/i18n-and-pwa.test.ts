@@ -38,3 +38,12 @@ describe('PWA config', () => {
     expect(pwaOptions.workbox.runtimeCaching.map((rule) => rule.handler)).toContain('NetworkFirst');
   });
 });
+
+describe('countryName', () => {
+  it('names countries in the UI language from ISO codes', async () => {
+    const { countryName } = await import('../../src/lib/i18n');
+    expect(countryName('US', 'uk-UA')).toBe('Сполучені Штати');
+    expect(countryName('US', 'en-US')).toBe('United States');
+    expect(countryName('??', 'uk-UA', 'Unknown')).toBe('Unknown');
+  });
+});

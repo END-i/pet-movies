@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import { makeImageUrl, tmdbRequest, TMDB_DEBUG, TMDB_TTL } from '../../../../lib/tmdb';
 import type { MediaType, MovieDetails } from '../../../../lib/types';
 import { pickAgeRating } from '../../../../lib/ageRating';
-import { tmdbLanguage } from '../../../../lib/i18n';
+import { countryName, tmdbLanguage } from '../../../../lib/i18n';
 import {
   isoDate,
   movieRelease,
@@ -11,6 +11,7 @@ import {
 } from '../../../../lib/releaseStatus';
 import { summarizeSeries, type TmdbSeriesFields } from '../../../../lib/series';
 import type { WatchProvider } from '../../../../lib/types';
+import { translatedLanguages } from '../../../../lib/translations';
 
 interface TmdbProvider {
   provider_id: number;
@@ -49,7 +50,7 @@ interface DetailsResponse extends TmdbSeriesFields {
   poster_path: string | null;
   backdrop_path: string | null;
   overview: string;
-  production_countries?: Array<{ name: string }>;
+  production_countries?: Array<{ name: string; iso_3166_1?: string }>;
   genres?: Array<{ name: string }>;
   adult?: boolean;
   vote_average: number;
@@ -181,11 +182,14 @@ export const GET: APIRoute = async ({ params, url }) => {
       title: localizedTitle ?? originalTitle,
       originalTitle,
       hasUkrainianTranslation,
+      translations: translatedLanguages(data.translations?.translations),
       year: (data.release_date ?? data.first_air_date ?? '').slice(0, 4),
       poster: makeImageUrl(data.poster_path),
       backdrop: makeImageUrl(data.backdrop_path, 'w780'),
       overview: localizedOverview || 'Опис поки відсутній.',
-      countries: (data.production_countries ?? []).map((country) => country.name),
+      countries: (data.production_countries ?? []).map((country) =>
+        country.iso_3166_1 ? countryName(country.iso_3166_1, language, country.name) : country.name
+      ),
       ageRating: pickAgeRating(certifications, Boolean(data.adult)),
       voteAverage: data.vote_average,
       voteCount: data.vote_count,

@@ -15,7 +15,7 @@ test('home shows catalog results on a phone without horizontal scroll', async ({
   await expect(page.getByRole('heading', { name: 'Що подивитися?' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Матриця' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Темрява' })).toBeVisible();
-  await expect(page.getByTitle('Немає українського перекладу')).toHaveText(/UA/);
+  await expect(page.getByTitle('Немає перекладу: українська')).toHaveText(/UA/);
   await expect(page.getByText('Онлайн', { exact: true })).toBeVisible();
   await expect(page.getByText(/^Анонс · 10 січ/)).toBeVisible();
   await expectNoHorizontalScroll(page);
@@ -360,4 +360,23 @@ test('similar titles are requested with the hidden genres', async ({ page }) => 
   const request = page.waitForRequest('**/api/similar/**');
   await gotoHydrated(page, '/details/movie/603');
   expect(new URL((await request).url()).searchParams.get('hideGenres')).toBe('horror');
+});
+
+test('the translation badge follows the chosen language', async ({ page }) => {
+  await mockApi(page);
+  await gotoHydrated(page, '/');
+  await expect(page.getByTitle('Немає перекладу: українська')).toHaveCount(1);
+
+  await page.getByRole('button', { name: 'Фільтри' }).click();
+  const sheet = page.getByRole('dialog', { name: 'Фільтри' });
+  await sheet.getByLabel('Позначати, якщо немає перекладу').selectOption('pl');
+  await sheet.getByRole('button', { name: 'Показати' }).click();
+
+  // Dark has Polish, The Matrix does not.
+  await expect(page.getByTitle('Немає перекладу: польська')).toHaveCount(1);
+  await expect(page.getByTitle('Немає перекладу: українська')).toHaveCount(0);
+
+  await page.reload();
+  await page.waitForFunction(() => !document.querySelector('astro-island[ssr]'));
+  await expect(page.getByTitle('Немає перекладу: польська')).toHaveCount(1);
 });

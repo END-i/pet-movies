@@ -9,7 +9,7 @@ import {
   normalizeSort,
   parseExcludedCountries
 } from '../../lib/discover';
-import { tmdbLanguage } from '../../lib/i18n';
+import { countryName, tmdbLanguage } from '../../lib/i18n';
 import { usCertificationForFilter } from '../../lib/ageRating';
 import { hiddenGenreIds, isGenreAllowed, parseHiddenGenres } from '../../lib/genres';
 import {
@@ -20,6 +20,7 @@ import {
   type ReleaseDates
 } from '../../lib/releaseStatus';
 import { summarizeSeries, type SeriesInfo, type TmdbSeriesFields } from '../../lib/series';
+import { translatedLanguages } from '../../lib/translations';
 
 interface DiscoverResponse {
   page: number;
@@ -73,6 +74,7 @@ interface Enrichment {
   actors: string[];
   genres: string[];
   hasUkrainianTranslation: boolean;
+  translations: string[];
   releaseDates: ReleaseDates;
   series: SeriesInfo | null;
 }
@@ -105,7 +107,12 @@ async function loadEnrichment(
     return {
       title: details.title ?? details.name,
       overview: details.overview,
-      countryNames: details.production_countries?.map((country) => country.name) ?? [],
+      countryNames:
+        details.production_countries?.map((country) =>
+          country.iso_3166_1
+            ? countryName(country.iso_3166_1, language, country.name)
+            : country.name
+        ) ?? [],
       countryCodes: Array.from(
         new Set([
           ...(details.production_countries ?? [])
@@ -119,6 +126,7 @@ async function loadEnrichment(
       hasUkrainianTranslation: Boolean(
         ukTranslation?.data?.title || ukTranslation?.data?.name || ukTranslation?.data?.overview
       ),
+      translations: translatedLanguages(details.translations?.translations),
       releaseDates: summarizeReleaseDates(details.release_dates),
       series: mediaType === 'tv' ? summarizeSeries(details) : null
     };
@@ -229,9 +237,12 @@ async function loadByConfig(args: {
           title: localizedTitle ?? originalTitle,
           originalTitle,
           hasUkrainianTranslation: details.hasUkrainianTranslation,
+          translations: details.translations,
           year: (item.release_date ?? item.first_air_date ?? '').slice(0, 4),
           poster: makeImageUrl(item.poster_path),
-          countries: details.countryNames.length ? details.countryNames : details.countryCodes,
+          countries: details.countryNames.length
+            ? details.countryNames
+            : details.countryCodes.map((code) => countryName(code, language)),
           countryCodes: details.countryCodes,
           actors: details.actors,
           genres: details.genres,
