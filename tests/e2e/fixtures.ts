@@ -202,6 +202,17 @@ export async function mockApi(page: Page, options: { totalPages?: number } = {})
   await page.route('**/api/details/**', (route) => json(route, movieDetails));
   await page.route('**/api/person/**', (route) => json(route, person));
   await page.route('**/api/similar/**', (route) => json(route, similarTitles));
+  await page.route('**/api/search/suggest.json*', (route) => {
+    const query = new URL(route.request().url()).searchParams.get('query') ?? '';
+    return json(route, {
+      results: /матр/i.test(query)
+        ? [
+            { kind: 'movie', id: 603, title: 'Матриця', detail: '1999', image: null },
+            { kind: 'person', id: 6384, title: 'Кіану Рівз', detail: 'Матриця', image: null }
+          ]
+        : []
+    });
+  });
   await page.route('**/api/search/people.json*', (route) => {
     const query = new URL(route.request().url()).searchParams.get('query') ?? '';
     return json(route, {

@@ -380,3 +380,31 @@ test('the translation badge follows the chosen language', async ({ page }) => {
   await page.waitForFunction(() => !document.querySelector('astro-island[ssr]'));
   await expect(page.getByTitle('Немає перекладу: польська')).toHaveCount(1);
 });
+
+test('search suggests titles and people while typing', async ({ page }) => {
+  const { discoverRequests } = await mockApi(page);
+  await gotoHydrated(page, '/');
+  const input = page.getByRole('combobox', { name: 'Пошук фільмів, серіалів і людей' });
+
+  await input.fill('ма');
+  await page.waitForTimeout(400);
+  await expect(page.getByRole('listbox', { name: 'Підказки' })).toHaveCount(0);
+
+  const requestsBefore = discoverRequests.length;
+  await input.fill('матриця');
+  const list = page.getByRole('listbox', { name: 'Підказки' });
+  await expect(list.getByRole('option')).toHaveCount(2);
+  await expect(list.getByRole('option', { name: /Кіану Рівз/ })).toContainText('Людина · Матриця');
+  // Typing alone does not run the full search.
+  expect(discoverRequests.length).toBe(requestsBefore);
+
+  await input.press('ArrowDown');
+  await expect(input).toHaveAttribute('aria-activedescendant', 'search-suggest-0');
+  await input.press('Escape');
+  await expect(list).toHaveCount(0);
+
+  await input.fill('матрица');
+  await input.fill('матриця');
+  await list.getByRole('option', { name: /Кіану Рівз/ }).click();
+  await expect(page).toHaveURL(/\/person\/6384$/);
+});

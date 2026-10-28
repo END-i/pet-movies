@@ -3,6 +3,7 @@
   import { get } from 'svelte/store';
   import { onMount } from 'svelte';
   import MovieCard from './MovieCard.svelte';
+  import SearchSuggest from './SearchSuggest.svelte';
   import { RECENT_RELEASE_DAYS } from '../lib/config';
   import {
     hiddenGenres,
@@ -142,6 +143,9 @@
   let resultsAnchor: HTMLElement | null = null;
   let people: PersonSummary[] = [];
   let peopleKey = '';
+  let suggest: SearchSuggest;
+  let suggestOpen = false;
+  let suggestActive = -1;
 
   $: genreOptions = category === 'tv' ? tvGenres : movieGenres;
   $: paginationTokens = buildPaginationTokens(page, totalPages);
@@ -424,7 +428,12 @@
     }
   }
 
+  function onSearchKeydown(event: KeyboardEvent) {
+    if (suggest?.handleKey(event)) event.preventDefault();
+  }
+
   async function onSearchSubmit() {
+    suggestOpen = false;
     preset = '';
     (document.activeElement as HTMLElement | null)?.blur();
     await fetchData(1);
@@ -505,6 +514,22 @@
       placeholder={tr(locale, 'Фільм, серіал або актор', 'Movie, series or actor')}
       enterkeyhint="search"
       autocomplete="off"
+      role="combobox"
+      aria-autocomplete="list"
+      aria-controls="search-suggest"
+      aria-expanded={suggestOpen}
+      aria-activedescendant={suggestActive >= 0 ? suggest?.optionId(suggestActive) : undefined}
+      on:input={() => (suggestOpen = true)}
+      on:focus={() => (suggestOpen = true)}
+      on:blur={() => (suggestOpen = false)}
+      on:keydown={onSearchKeydown}
+    />
+    <SearchSuggest
+      bind:this={suggest}
+      bind:open={suggestOpen}
+      bind:active={suggestActive}
+      {query}
+      {locale}
     />
     <button
       type="button"
@@ -874,6 +899,7 @@
 
 <style>
   .search {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 10px;
