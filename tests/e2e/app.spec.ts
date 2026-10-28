@@ -172,8 +172,17 @@ test('details page shows info, saves to a new category and links to the actor', 
   await expect(page.getByText('The Matrix')).toBeVisible();
   await expect(page.getByText('16+', { exact: true })).toBeVisible();
   await expect(page.getByText(/^У кіно · онлайн з 1 груд/)).toBeVisible();
+  await expect(page.getByText('2 год 16 хв')).toBeVisible();
+  await expect(page.getByText('«Ласкаво просимо в реальний світ.»')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Лана Вачовскі' })).toHaveAttribute(
+    'href',
+    '/person/9339'
+  );
+  await expect(page.getByRole('heading', { name: 'Де подивитися в Україні' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Netflix' })).toBeVisible();
   await expectNoHorizontalScroll(page);
 
+  await page.getByText('Категорії улюблених').click();
   await page.getByRole('textbox', { name: 'Нова категорія' }).fill('Класика');
   await page.getByRole('button', { name: 'Створити категорію й додати' }).click();
   await expect(page.getByRole('button', { name: '✓ Класика' })).toHaveAttribute(

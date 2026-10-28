@@ -19,6 +19,7 @@ import {
   tvRelease,
   type ReleaseDates
 } from '../../lib/releaseStatus';
+import { summarizeSeries, type SeriesInfo, type TmdbSeriesFields } from '../../lib/series';
 
 interface DiscoverResponse {
   page: number;
@@ -40,7 +41,7 @@ interface DiscoverResponse {
   }>;
 }
 
-interface EntityDetails {
+interface EntityDetails extends TmdbSeriesFields {
   title?: string;
   name?: string;
   overview?: string;
@@ -73,6 +74,7 @@ interface Enrichment {
   genres: string[];
   hasUkrainianTranslation: boolean;
   releaseDates: ReleaseDates;
+  series: SeriesInfo | null;
 }
 
 // Each catalog page needs details for up to 20 titles; they change rarely, so keep them half a day.
@@ -117,7 +119,8 @@ async function loadEnrichment(
       hasUkrainianTranslation: Boolean(
         ukTranslation?.data?.title || ukTranslation?.data?.name || ukTranslation?.data?.overview
       ),
-      releaseDates: summarizeReleaseDates(details.release_dates)
+      releaseDates: summarizeReleaseDates(details.release_dates),
+      series: mediaType === 'tv' ? summarizeSeries(details) : null
     };
   });
 }
@@ -233,6 +236,7 @@ async function loadByConfig(args: {
           actors: details.actors,
           genres: details.genres,
           release: releaseOf(item, details.releaseDates ?? {}),
+          series: details.series ?? null,
           overview: localizedOverview || 'Опис поки відсутній.',
           voteAverage: item.vote_average,
           voteCount: item.vote_count

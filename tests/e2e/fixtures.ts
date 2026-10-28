@@ -54,7 +54,21 @@ export const movieDetails = {
   genres: ['Бойовик', 'Фантастика'],
   actors: [{ id: 6384, name: 'Кіану Рівз', character: 'Нео', photo: null }],
   trailerKey: null,
-  release: { status: 'cinema', date: '2026-12-01' }
+  release: { status: 'cinema', date: '2026-12-01' },
+  tagline: 'Ласкаво просимо в реальний світ.',
+  runtime: 136,
+  makers: [{ id: 9339, name: 'Лана Вачовскі' }],
+  budget: 63000000,
+  revenue: 463517383,
+  networks: [],
+  series: null,
+  seasons: [],
+  watch: {
+    link: 'https://www.themoviedb.org/movie/603/watch?locale=UA',
+    stream: [{ id: 8, name: 'Netflix', logo: null }],
+    rent: [],
+    buy: []
+  }
 };
 
 export const person = {

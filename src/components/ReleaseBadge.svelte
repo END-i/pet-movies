@@ -2,8 +2,11 @@
   import { tr } from '../lib/i18n';
   import type { LocaleMode } from '../lib/preferences';
   import type { ReleaseInfo } from '../lib/releaseStatus';
+  import { seriesStatusLabel, type SeriesInfo } from '../lib/series';
 
   export let release: ReleaseInfo | null | undefined;
+  /** Series: shown when there is no release badge (i.e. the series has premiered). */
+  export let series: SeriesInfo | null | undefined = null;
   export let locale: LocaleMode;
   /** Long form adds the expected home release date for titles in cinemas. */
   export let long = false;
@@ -46,6 +49,8 @@
 
 {#if release}
   <span class="release {release.status}" title={hint}>{label}</span>
+{:else if series?.status}
+  <span class="release series-{series.status}">{seriesStatusLabel(series.status, locale)}</span>
 {/if}
 
 <style>
@@ -68,7 +73,18 @@
     color: var(--star);
   }
 
-  .upcoming {
+  .upcoming,
+  .series-planned,
+  .series-production {
     color: var(--accent);
+  }
+
+  .series-airing {
+    color: var(--success);
+  }
+
+  .series-ended,
+  .series-canceled {
+    color: var(--muted);
   }
 </style>

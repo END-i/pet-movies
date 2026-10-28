@@ -9,9 +9,37 @@ import {
   summarizeReleaseDates,
   tvRelease
 } from '../../../../lib/releaseStatus';
+import { summarizeSeries, type TmdbSeriesFields } from '../../../../lib/series';
+import type { WatchProvider } from '../../../../lib/types';
 
-interface DetailsResponse {
+interface TmdbProvider {
+  provider_id: number;
+  provider_name: string;
+  logo_path: string | null;
+}
+
+interface DetailsResponse extends TmdbSeriesFields {
   id: number;
+  tagline?: string;
+  runtime?: number | null;
+  episode_run_time?: number[];
+  last_episode_to_air?: { runtime?: number | null } | null;
+  budget?: number;
+  revenue?: number;
+  created_by?: Array<{ id: number; name: string }>;
+  networks?: Array<{ name: string }>;
+  seasons?: Array<{
+    season_number: number;
+    name: string;
+    episode_count?: number;
+    air_date?: string | null;
+  }>;
+  'watch/providers'?: {
+    results?: Record<
+      string,
+      { link?: string; flatrate?: TmdbProvider[]; rent?: TmdbProvider[]; buy?: TmdbProvider[] }
+    >;
+  };
   title?: string;
   name?: string;
   original_title?: string;
@@ -37,6 +65,7 @@ interface DetailsResponse {
       character: string;
       profile_path: string | null;
     }>;
+    crew?: Array<{ id: number; name: string; job?: string }>;
   };
   release_dates?: {
     results?: Array<{
@@ -67,6 +96,29 @@ interface DetailsResponse {
   };
 }
 
+function toProviders(list: TmdbProvider[] | undefined): WatchProvider[] {
+  return (list ?? []).map((provider) => ({
+    id: provider.provider_id,
+    name: provider.provider_name,
+    logo: makeImageUrl(provider.logo_path, 'w92')
+  }));
+}
+
+function pickWatchProviders(
+  region:
+    | { link?: string; flatrate?: TmdbProvider[]; rent?: TmdbProvider[]; buy?: TmdbProvider[] }
+    | undefined
+): MovieDetails['watch'] {
+  if (!region) return null;
+  const watch = {
+    link: region.link ?? '',
+    stream: toProviders(region.flatrate),
+    rent: toProviders(region.rent),
+    buy: toProviders(region.buy)
+  };
+  return watch.stream.length || watch.rent.length || watch.buy.length ? watch : null;
+}
+
 export const GET: APIRoute = async ({ params, url }) => {
   try {
     const mediaType = params.mediaType as MediaType;
@@ -80,7 +132,7 @@ export const GET: APIRoute = async ({ params, url }) => {
     const data = await tmdbRequest<DetailsResponse>(
       `/${mediaType}/${id}`,
       {
-        append_to_response: `credits,videos,external_ids,translations,${
+        append_to_response: `credits,videos,external_ids,translations,watch/providers,${
           mediaType === 'movie' ? 'release_dates' : 'content_ratings'
         }`,
         include_video_language: 'uk,en,null',
@@ -147,6 +199,34 @@ export const GET: APIRoute = async ({ params, url }) => {
         photo: makeImageUrl(actor.profile_path, 'w185')
       })),
       trailerKey: trailer?.key ?? null,
+      tagline: data.tagline?.trim() || undefined,
+      runtime:
+        mediaType === 'movie'
+          ? (data.runtime ?? null)
+          : (data.episode_run_time?.[0] ?? data.last_episode_to_air?.runtime ?? null),
+      makers:
+        mediaType === 'movie'
+          ? (data.credits?.crew ?? [])
+              .filter((member) => member.job === 'Director')
+              .map(({ id: personId, name }) => ({ id: personId, name }))
+              .filter((person, index, list) => list.findIndex((p) => p.id === person.id) === index)
+          : (data.created_by ?? []).map(({ id: personId, name }) => ({ id: personId, name })),
+      budget: data.budget || undefined,
+      revenue: data.revenue || undefined,
+      networks: (data.networks ?? []).map((network) => network.name),
+      series: mediaType === 'tv' ? summarizeSeries(data) : null,
+      seasons:
+        mediaType === 'tv'
+          ? (data.seasons ?? [])
+              .filter((season) => season.season_number > 0)
+              .map((season) => ({
+                number: season.season_number,
+                name: season.name,
+                episodes: season.episode_count ?? 0,
+                year: (season.air_date ?? '').slice(0, 4)
+              }))
+          : [],
+      watch: pickWatchProviders(data['watch/providers']?.results?.UA),
       release:
         mediaType === 'movie'
           ? movieRelease(

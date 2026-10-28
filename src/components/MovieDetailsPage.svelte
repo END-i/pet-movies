@@ -16,6 +16,7 @@
   import { POSTER_SIZES, posterSrcset } from '../lib/images';
   import type { MovieDetails } from '../lib/types';
   import ReleaseBadge from './ReleaseBadge.svelte';
+  import { episodesLabel, runtimeLabel, seasonsLabel } from '../lib/series';
 
   const CLIENT_DEBUG = PUBLIC_DEBUG_LOGS;
 
@@ -33,6 +34,25 @@
 
   $: locale = $localeMode;
   $: showOriginal = details?.originalTitle && details.originalTitle !== details.title;
+  $: dateLocale = locale === 'en' ? 'en-US' : 'uk-UA';
+
+  function formatDay(value: string): string {
+    return new Date(`${value}T00:00:00Z`).toLocaleDateString(dateLocale, {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'UTC'
+    });
+  }
+
+  function formatMoney(value: number): string {
+    return new Intl.NumberFormat(dateLocale, {
+      style: 'currency',
+      currency: 'USD',
+      notation: 'compact',
+      maximumFractionDigits: 1
+    }).format(value);
+  }
 
   async function loadDetails() {
     loading = true;
@@ -224,6 +244,11 @@
               >{/if}
             {#if details.year}<span>{details.year}</span>{/if}
             {#if details.ageRating}<span class="age">{details.ageRating}</span>{/if}
+            {#if runtimeLabel(details.runtime, locale)}<span
+                >{runtimeLabel(details.runtime, locale)}{details.mediaType === 'tv'
+                  ? tr(locale, ' / серія', ' / ep')
+                  : ''}</span
+              >{/if}
             <span
               >{details.mediaType === 'tv'
                 ? tr(locale, 'Серіал', 'TV series')
@@ -233,8 +258,10 @@
           {#if details.countries.length}
             <p class="muted small">{details.countries.join(', ')}</p>
           {/if}
-          {#if details.release}
-            <p class="release-row"><ReleaseBadge release={details.release} {locale} long /></p>
+          {#if details.release || details.series?.status}
+            <p class="release-row">
+              <ReleaseBadge release={details.release} series={details.series} {locale} long />
+            </p>
           {/if}
         </div>
       </div>
@@ -253,6 +280,10 @@
         <span class="badge">Немає українського перекладу</span>
       {/if}
 
+      {#if details.tagline}
+        <p class="tagline">«{details.tagline}»</p>
+      {/if}
+
       <p class="overview">
         {details.overview || tr(locale, 'Опис поки відсутній.', 'No description yet.')}
       </p>
@@ -269,10 +300,103 @@
         {/if}
       </p>
 
-      <section class="panel favorites" aria-labelledby="fav-title">
-        <h2 id="fav-title" class="section-title">
-          {tr(locale, 'Категорії улюблених', 'Favorite categories')}
-        </h2>
+      {#if details.makers?.length || details.series || details.networks?.length || details.budget || details.revenue}
+        <dl class="info">
+          {#if details.makers?.length}
+            <dt>
+              {details.mediaType === 'tv'
+                ? tr(locale, 'Творці', 'Created by')
+                : tr(locale, 'Режисер', 'Director')}
+            </dt>
+            <dd>
+              {#each details.makers as maker, index (maker.id)}{index ? ', ' : ''}<a
+                  href={`/person/${maker.id}`}>{maker.name}</a
+                >{/each}
+            </dd>
+          {/if}
+          {#if details.series?.seasons}
+            <dt>{tr(locale, 'Сезони', 'Seasons')}</dt>
+            <dd>
+              {seasonsLabel(details.series.seasons, locale)}{#if details.series.episodes}
+                · {episodesLabel(details.series.episodes, locale)}{/if}
+            </dd>
+          {/if}
+          {#if details.series?.nextEpisode}
+            <dt>{tr(locale, 'Наступна серія', 'Next episode')}</dt>
+            <dd>{formatDay(details.series.nextEpisode)}</dd>
+          {/if}
+          {#if details.networks?.length}
+            <dt>{tr(locale, 'Канал', 'Network')}</dt>
+            <dd>{details.networks.join(', ')}</dd>
+          {/if}
+          {#if details.budget}
+            <dt>{tr(locale, 'Бюджет', 'Budget')}</dt>
+            <dd>{formatMoney(details.budget)}</dd>
+          {/if}
+          {#if details.revenue}
+            <dt>{tr(locale, 'Збори', 'Box office')}</dt>
+            <dd>{formatMoney(details.revenue)}</dd>
+          {/if}
+        </dl>
+      {/if}
+
+      {#if details.watch}
+        <section class="watch" aria-labelledby="watch-title">
+          <h2 id="watch-title" class="section-title">
+            {tr(locale, 'Де подивитися в Україні', 'Where to watch in Ukraine')}
+          </h2>
+          {#each [{ list: details.watch.stream, uk: 'За підпискою', en: 'Subscription' }, { list: details.watch.rent, uk: 'Оренда', en: 'Rent' }, { list: details.watch.buy, uk: 'Купівля', en: 'Buy' }] as group (group.en)}
+            {#if group.list.length}
+              <div class="watch-group">
+                <span class="muted small">{tr(locale, group.uk, group.en)}</span>
+                <div class="providers">
+                  {#each group.list as provider (provider.id)}
+                    <a
+                      class="provider"
+                      href={details.watch.link}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={provider.name}
+                    >
+                      {#if provider.logo}
+                        <img src={provider.logo} alt="" width="40" height="40" loading="lazy" />
+                      {/if}
+                      <span>{provider.name}</span>
+                    </a>
+                  {/each}
+                </div>
+              </div>
+            {/if}
+          {/each}
+          <p class="muted small">{tr(locale, 'Дані: JustWatch', 'Data: JustWatch')}</p>
+        </section>
+      {/if}
+
+      {#if details.seasons?.length}
+        <details class="panel seasons">
+          <summary>
+            {tr(locale, 'Сезони', 'Seasons')} · {details.seasons.length}
+          </summary>
+          <ul>
+            {#each details.seasons as season (season.number)}
+              <li>
+                <span>{season.name}</span>
+                <span class="muted small">
+                  {[season.year, season.episodes ? episodesLabel(season.episodes, locale) : '']
+                    .filter(Boolean)
+                    .join(' · ')}
+                </span>
+              </li>
+            {/each}
+          </ul>
+        </details>
+      {/if}
+
+      <details class="panel favorites">
+        <summary>
+          <span>{tr(locale, 'Категорії улюблених', 'Favorite categories')}</span>
+          {#if savedIn.length}<span class="saved-in">{savedIn.join(', ')}</span>{/if}
+        </summary>
         <div class="chips">
           {#each categories as category (category)}
             <button
@@ -305,7 +429,7 @@
             </svg>
           </button>
         </form>
-      </section>
+      </details>
 
       {#if details.trailerKey}
         <section>
@@ -508,17 +632,120 @@
   }
 
   .favorites {
+    padding: 10px 14px;
+  }
+
+  .favorites[open] {
+    padding-bottom: 14px;
+  }
+
+  .favorites > * + * {
+    margin-top: 10px;
+  }
+
+  summary {
+    cursor: pointer;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-height: 32px;
+    align-content: center;
+    font-weight: 600;
+    font-size: 0.92rem;
+  }
+
+  .saved-in {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .tagline {
+    margin: 0;
+    font-style: italic;
+    color: var(--muted);
+  }
+
+  .info {
+    margin: 0;
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 6px 14px;
+    font-size: 0.92rem;
+  }
+
+  .info dt {
+    color: var(--muted);
+  }
+
+  .info dd {
+    margin: 0;
+  }
+
+  .watch {
     display: grid;
     gap: 10px;
   }
 
-  .favorites .section-title {
+  .watch .section-title,
+  .watch p {
     margin: 0;
+  }
+
+  .watch-group {
+    display: grid;
+    gap: 6px;
+  }
+
+  .providers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .provider {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px 4px 4px;
+    border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .provider img {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+  }
+
+  .seasons {
+    padding: 10px 14px;
+  }
+
+  .seasons ul {
+    list-style: none;
+    margin: 10px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 6px;
+  }
+
+  .seasons li {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
   }
 
   .favorites .chips {
     flex-wrap: wrap;
-    margin: 0;
+    margin: 10px 0 0;
     padding: 0;
     overflow: visible;
   }

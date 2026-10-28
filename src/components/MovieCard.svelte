@@ -6,6 +6,7 @@
   import { POSTER_SIZES, posterSrcset } from '../lib/images';
   import type { CatalogItem } from '../lib/types';
   import ReleaseBadge from './ReleaseBadge.svelte';
+  import { seasonsLabel } from '../lib/series';
 
   export let item: CatalogItem;
 
@@ -78,9 +79,12 @@
       <p class="overview">{item.overview}</p>
     {/if}
 
-    {#if item.release || (!item.hasUkrainianTranslation && $localeMode === 'uk')}
+    {#if item.release || item.series || (!item.hasUkrainianTranslation && $localeMode === 'uk')}
       <p class="tags">
-        <ReleaseBadge release={item.release} locale={$localeMode} />
+        <ReleaseBadge release={item.release} series={item.series} locale={$localeMode} />
+        {#if item.series?.seasons}
+          <span class="seasons">{seasonsLabel(item.series.seasons, $localeMode)}</span>
+        {/if}
         {#if !item.hasUkrainianTranslation && $localeMode === 'uk'}
           <span class="no-ua" title="Немає українського перекладу">
             <span aria-hidden="true">UA</span>
@@ -215,6 +219,12 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 6px;
+  }
+
+  .seasons {
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 600;
   }
 
   .no-ua {

@@ -1,4 +1,5 @@
 import type { ReleaseInfo } from './releaseStatus';
+import type { SeriesInfo } from './series';
 
 export type MediaType = 'movie' | 'tv';
 export type PersonSegment = 'male' | 'female' | 'child' | 'person';
@@ -21,6 +22,8 @@ export interface CatalogItem {
   voteCount: number;
   /** Where the title can be watched now; null when unknown. */
   release?: ReleaseInfo | null;
+  /** Series only: status and number of seasons. */
+  series?: SeriesInfo | null;
 }
 
 export interface Actor {
@@ -99,6 +102,39 @@ export interface MovieDetails {
   actors: Actor[];
   trailerKey: string | null;
   release?: ReleaseInfo | null;
+  tagline?: string;
+  /** Movie runtime or typical episode runtime, minutes. */
+  runtime?: number | null;
+  /** Directors (movies) or creators (series). */
+  makers?: Array<{ id: number; name: string }>;
+  budget?: number;
+  revenue?: number;
+  networks?: string[];
+  series?: SeriesInfo | null;
+  seasons?: SeasonSummary[];
+  /** Streaming in Ukraine (TMDB / JustWatch); null when nothing is known. */
+  watch?: WatchProviders | null;
+}
+
+export interface SeasonSummary {
+  number: number;
+  name: string;
+  episodes: number;
+  year: string;
+}
+
+export interface WatchProvider {
+  id: number;
+  name: string;
+  logo: string | null;
+}
+
+export interface WatchProviders {
+  /** TMDB page that links out to each provider. */
+  link: string;
+  stream: WatchProvider[];
+  rent: WatchProvider[];
+  buy: WatchProvider[];
 }
 
 export interface FavoriteEntry {
