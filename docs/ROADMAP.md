@@ -206,7 +206,8 @@
 - [ ] `CatalogPage.svelte` (~700 рядків): винести пресети, стан фільтрів і синхронізацію з URL у `src/lib`.
 - [x] Немає ESLint-конфігу, хоча залежності встановлено (`eslint`, `eslint-plugin-svelte`…) — додати конфіг за прикладом cards або прибрати залежності.
   - Зроблено (28.10): `eslint.config.js` (JS + TypeScript + Svelte + Prettier), `npm run lint`, входить у `npm run ci`. `.astro` перевіряє `astro check`. Правила для старого `$:` після переходу на runes знову ввімкнено (28.10).
-- [ ] E2E на dev-сервері (SW вимкнений) — додати e2e на `build` з `context.setOffline(true)`.
+- [x] E2E на dev-сервері (SW вимкнений) — додати e2e на `build` з `context.setOffline(true)`.
+  - Зроблено (28.10): проєкт `pwa-offline` у `playwright.config.ts` — production-збірка, справжній service worker, `tests/e2e/offline.spec.ts`: відвідана сторінка й улюблені відкриваються без сервера, нова сторінка — `/offline`. Нюанси: адреса `pwa.localhost` (Layout вимикає SW на localhost/127.0.0.1), повний Chromium (`channel: 'chromium'`: headless shell не дає SW контролювати сторінки), «офлайн» = тест зупиняє власний сервер (`context.setOffline` обриває навігацію ще до SW).
 - [ ] Немає компонентних тестів.
 - [x] Типи відповідей TMDB описані вручну в кожному роуті — винести в `src/lib/tmdb-types.ts`.
   - Зроблено (28.10): `src/lib/tmdb-types.ts` (`TmdbDetailsResponse`, `TmdbDiscoverResponse`, `TmdbPersonResponse`…); у роутах лишились лише їхні власні типи (`Enrichment`).
