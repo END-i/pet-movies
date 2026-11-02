@@ -53,6 +53,42 @@ test('search by title sends the query and updates the URL', async ({ page }) => 
   await expect(page).toHaveURL(/query=matrix/);
 });
 
+test('the × in the search box clears the text and the search results', async ({ page }) => {
+  const { discoverRequests } = await mockApi(page);
+  await gotoHydrated(page, '/');
+
+  const search = page.getByRole('combobox', { name: 'Пошук фільмів, серіалів і людей' });
+  const clear = page.getByRole('button', { name: 'Очистити пошук' });
+  await expect(clear).toHaveCount(0);
+  await search.fill('matrix');
+  await search.press('Enter');
+  await expect(page).toHaveURL(/query=matrix/);
+
+  await clear.click();
+  await expect(search).toHaveValue('');
+  await expect(search).toBeFocused();
+  await expect(clear).toHaveCount(0);
+  await expect.poll(() => discoverRequests.at(-1)?.searchParams.get('query')).toBe('');
+  await expect(page).not.toHaveURL(/query=/);
+});
+
+test('a theme chip shows the catalog on that motif', async ({ page }) => {
+  const { discoverRequests } = await mockApi(page);
+  await gotoHydrated(page, '/');
+
+  const themes = page.getByRole('group', { name: 'Теми' });
+  await themes.getByRole('button', { name: 'Подорожі в часі' }).click();
+  await expect(themes.getByRole('button', { name: 'Подорожі в часі' })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  );
+  await expect.poll(() => discoverRequests.at(-1)?.searchParams.get('keyword')).toBe('4379');
+  await expect(page).toHaveURL(/keyword=4379/);
+
+  await themes.getByRole('button', { name: 'Подорожі в часі' }).click();
+  await expect.poll(() => discoverRequests.at(-1)?.searchParams.get('keyword')).toBe('');
+});
+
 test('category chips switch the category', async ({ page }) => {
   const { discoverRequests } = await mockApi(page);
   await gotoHydrated(page, '/');
@@ -376,10 +412,23 @@ test('details page shows recommended and same-topic titles', async ({ page }) =>
   await expect(recommended.getByText(/^Анонс/)).toHaveCount(1);
   await expect(recommended.getByText('Онлайн')).toHaveCount(0);
 
+  const series = page.getByRole('region', { name: 'Серія фільмів: Матриця' });
+  await expect(series.getByRole('link', { name: /Матриця: Перезавантаження/ })).toBeVisible();
+  await expect(series.locator('[aria-current="page"]')).toContainText('Матриця');
+
   const topic = page.getByRole('region', { name: 'Схожі за темою' });
-  await expect(topic.getByText('simulated reality · dystopia')).toBeVisible();
+  await expect(topic.locator('.topic-keywords')).toHaveText('dystopia · simulated reality');
   await expect(topic.getByRole('link', { name: /Тринадцятий поверх/ })).toBeVisible();
   await expectNoHorizontalScroll(page);
+
+  // A topic tag opens the catalog on that tag.
+  const { discoverRequests } = await mockApi(page);
+  await topic.getByRole('link', { name: 'simulated reality' }).click();
+  await expect(page).toHaveURL(/keyword=4366/);
+  await expect(
+    page.getByRole('group', { name: 'Теми' }).getByRole('button', { name: /simulated reality/ })
+  ).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(() => discoverRequests.at(-1)?.searchParams.get('keyword')).toBe('4366');
 });
 
 test('similar titles are requested with the hidden genres', async ({ page }) => {

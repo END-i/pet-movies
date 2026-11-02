@@ -224,7 +224,29 @@ const de: Record<string, string> = {
   Writing: 'Drehbuch',
   'y.o.': 'J.',
   Year: 'Jahr',
-  'You are offline': 'Keine Internetverbindung'
+  'You are offline': 'Keine Internetverbindung',
+  'Clear search': 'Suche löschen',
+  Themes: 'Themen',
+  'Film series: {name}': 'Filmreihe: {name}',
+  'Universe: {name}': 'Universum: {name}',
+  'All titles on this topic': 'Alle Titel zu diesem Thema',
+  'In release order': 'In Erscheinungsreihenfolge',
+  'Time travel': 'Zeitreisen',
+  Heists: 'Raubzüge',
+  Space: 'Weltraum',
+  Superheroes: 'Superhelden',
+  Survival: 'Überleben',
+  'Post-apocalypse': 'Postapokalypse',
+  'Artificial intelligence': 'Künstliche Intelligenz',
+  Zombies: 'Zombies',
+  Aliens: 'Außerirdische',
+  Dinosaurs: 'Dinosaurier',
+  'World War II': 'Zweiter Weltkrieg',
+  'True stories': 'Wahre Geschichten',
+  Mafia: 'Mafia',
+  'Road trips': 'Roadtrips',
+  Sports: 'Sport',
+  Christmas: 'Weihnachten'
 };
 
 export default de;

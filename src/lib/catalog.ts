@@ -105,6 +105,42 @@ export interface CatalogFilters {
   releasePeriod: ReleasePeriod;
   limit: string;
   preset: FilterPreset;
+  /** TMDB keyword id: a theme from THEMES or a tag opened from a title page. */
+  keyword: string;
+  /** The tag's name for a keyword that is not in THEMES (TMDB tags are English). */
+  keywordName: string;
+}
+
+export interface Theme {
+  keyword: string;
+  uk: string;
+  en: string;
+}
+
+/** Collections by motif: TMDB keywords (ids checked against /search/keyword). */
+export const THEMES: Theme[] = [
+  { keyword: '4379', uk: 'Подорожі в часі', en: 'Time travel' },
+  { keyword: '10051', uk: 'Пограбування', en: 'Heists' },
+  { keyword: '9882', uk: 'Космос', en: 'Space' },
+  { keyword: '9715', uk: 'Супергерої', en: 'Superheroes' },
+  { keyword: '10349', uk: 'Виживання', en: 'Survival' },
+  { keyword: '4458', uk: 'Постапокаліпсис', en: 'Post-apocalypse' },
+  { keyword: '310', uk: 'Штучний інтелект', en: 'Artificial intelligence' },
+  { keyword: '12377', uk: 'Зомбі', en: 'Zombies' },
+  { keyword: '9951', uk: 'Прибульці', en: 'Aliens' },
+  { keyword: '12616', uk: 'Динозаври', en: 'Dinosaurs' },
+  { keyword: '1956', uk: 'Друга світова', en: 'World War II' },
+  { keyword: '9672', uk: 'Реальні історії', en: 'True stories' },
+  { keyword: '10391', uk: 'Мафія', en: 'Mafia' },
+  { keyword: '7312', uk: 'Подорож дорогою', en: 'Road trips' },
+  { keyword: '6075', uk: 'Спорт', en: 'Sports' },
+  { keyword: '207317', uk: 'Різдво', en: 'Christmas' }
+];
+
+const KEYWORD_PATTERN = /^\d+$/;
+
+export function findTheme(keyword: string): Theme | undefined {
+  return THEMES.find((theme) => theme.keyword === keyword);
 }
 
 export const formatDate = (value: Date) => value.toISOString().slice(0, 10);
@@ -140,7 +176,9 @@ export function defaultFilters(today = new Date()): CatalogFilters {
     releaseDateLte: formatDate(today),
     releasePeriod: '120',
     limit: '20',
-    preset: ''
+    preset: '',
+    keyword: '',
+    keywordName: ''
   };
 }
 
@@ -207,11 +245,37 @@ export function presetFilters(
     includeCountry: '',
     sortBy: 'popularity.desc',
     releasePeriod: 'all',
+    keyword: '',
+    keywordName: '',
     ...PRESETS[preset],
     preset
   };
   const range = releaseRange(next.releasePeriod, today);
   return range ? { ...next, releaseDateGte: range.gte, releaseDateLte: range.lte } : next;
+}
+
+/**
+ * A theme (or any TMDB tag): the whole catalog on that motif, most popular first, other filters
+ * kept except text search and presets (TMDB search cannot filter by tag).
+ */
+export function keywordFilters(
+  current: CatalogFilters,
+  keyword: string,
+  keywordName = ''
+): CatalogFilters {
+  return {
+    ...current,
+    category: current.category || 'all',
+    query: '',
+    preset: '',
+    year: '',
+    sortBy: 'popularity.desc',
+    releasePeriod: 'all',
+    releaseDateGte: '',
+    releaseDateLte: '',
+    keyword,
+    keywordName: findTheme(keyword) ? '' : keywordName
+  };
 }
 
 export function countActiveFilters(filters: CatalogFilters, hiddenGenreCount: number): number {
@@ -249,6 +313,8 @@ export function filtersToParams(
     releaseDateLte: filters.releaseDateLte,
     releasePeriod: filters.releasePeriod,
     preset: filters.preset,
+    keyword: filters.keyword,
+    keywordName: filters.keywordName,
     limit: filters.limit,
     hideGenres: extra.hiddenGenres.join(',')
   });
@@ -278,7 +344,9 @@ export function filtersFromParams(
 ): { filters: CatalogFilters; page: number } {
   const text = (key: string, fallback: string) => params.get(key) ?? fallback;
   const category = params.get('category') as Category | null;
-  const period = params.get('releasePeriod') as ReleasePeriod | null;
+  // A bare tag link from a title page (`/?keyword=…`) means the whole catalog on that tag.
+  const period = (params.get('releasePeriod') ??
+    (params.has('keyword') ? 'all' : null)) as ReleasePeriod | null;
   const preset = params.get('preset') as FilterPreset | null;
 
   const filters: CatalogFilters = {
@@ -296,7 +364,11 @@ export function filtersFromParams(
       : current.ageRating,
     limit: text('limit', current.limit),
     releasePeriod: period && releasePeriodOptions.includes(period) ? period : current.releasePeriod,
-    preset: preset && filterPresetOptions.includes(preset) ? preset : current.preset
+    preset: preset && filterPresetOptions.includes(preset) ? preset : current.preset,
+    keyword: KEYWORD_PATTERN.test(params.get('keyword') ?? '')
+      ? (params.get('keyword') as string)
+      : current.keyword,
+    keywordName: text('keywordName', current.keywordName).slice(0, 80)
   };
 
   if (params.has('releaseDateGte') || params.has('releaseDateLte')) {

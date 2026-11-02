@@ -224,7 +224,29 @@ const es: Record<string, string> = {
   Writing: 'Guion',
   'y.o.': 'años',
   Year: 'Año',
-  'You are offline': 'Sin conexión a internet'
+  'You are offline': 'Sin conexión a internet',
+  'Clear search': 'Borrar búsqueda',
+  Themes: 'Temas',
+  'Film series: {name}': 'Saga: {name}',
+  'Universe: {name}': 'Universo: {name}',
+  'All titles on this topic': 'Todos los títulos sobre este tema',
+  'In release order': 'En orden de estreno',
+  'Time travel': 'Viajes en el tiempo',
+  Heists: 'Atracos',
+  Space: 'Espacio',
+  Superheroes: 'Superhéroes',
+  Survival: 'Supervivencia',
+  'Post-apocalypse': 'Postapocalipsis',
+  'Artificial intelligence': 'Inteligencia artificial',
+  Zombies: 'Zombis',
+  Aliens: 'Extraterrestres',
+  Dinosaurs: 'Dinosaurios',
+  'World War II': 'Segunda Guerra Mundial',
+  'True stories': 'Historias reales',
+  Mafia: 'Mafia',
+  'Road trips': 'Viajes por carretera',
+  Sports: 'Deportes',
+  Christmas: 'Navidad'
 };
 
 export default es;

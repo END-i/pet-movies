@@ -22,14 +22,16 @@
     missingTranslationLabel,
     translationLanguage
   } from '../lib/translations';
-  import { intlLocale, tr } from '../lib/i18n';
+  import { intlLocale, tr, trf } from '../lib/i18n';
   import { POSTER_SIZES, posterSrcset } from '../lib/images';
   import type { MovieDetails } from '../lib/types';
-  import type { SimilarPayload } from '../lib/similar';
+  import type { SeriesGroup, SimilarItem, SimilarPayload } from '../lib/similar';
   import ReleaseBadge from './ReleaseBadge.svelte';
   import { episodesLabel, runtimeLabel, seasonsLabel } from '../lib/series';
 
   const CLIENT_DEBUG = PUBLIC_DEBUG_LOGS;
+  // Between topic tags; a literal space next to the links is dropped by the compiler.
+  const TAG_SEPARATOR = '\u00a0· ';
 
   interface Props {
     mediaType: 'movie' | 'tv';
@@ -49,6 +51,13 @@
   let similar: SimilarPayload | null = $state(null);
 
   let locale = $derived($localeMode);
+
+  /** Scrolls a series row so the open title is in view (the row itself, not the page). */
+  function centerCurrent(node: HTMLElement) {
+    const current = node.querySelector<HTMLElement>('[aria-current="page"]');
+    if (current)
+      node.scrollLeft = current.offsetLeft - (node.clientWidth - current.clientWidth) / 2;
+  }
   let showOriginal = $derived(details?.originalTitle && details.originalTitle !== details.title);
   let dateLocale = $derived(intlLocale(locale));
 
@@ -530,6 +539,24 @@
         </section>
       {/if}
 
+      {#if similar?.collection}
+        {@render seriesRow(
+          similar.collection,
+          'collection-title',
+          trf(locale, 'Серія фільмів: {name}', 'Film series: {name}', {
+            name: similar.collection.name
+          })
+        )}
+      {/if}
+
+      {#if similar?.universe}
+        {@render seriesRow(
+          similar.universe,
+          'universe-title',
+          trf(locale, 'Всесвіт: {name}', 'Universe: {name}', { name: similar.universe.name })
+        )}
+      {/if}
+
       {#if similar?.recommended.length}
         <section aria-labelledby="recommended-title">
           <h2 class="section-title" id="recommended-title">
@@ -537,26 +564,7 @@
           </h2>
           <div class="h-scroll">
             {#each similar.recommended as item (item.id)}
-              <a class="similar" href={`/details/${item.mediaType}/${item.id}`}>
-                <img
-                  src={item.poster ?? '/fallback-poster.svg'}
-                  srcset={posterSrcset(item.poster)}
-                  sizes={POSTER_SIZES.row}
-                  alt=""
-                  loading="lazy"
-                  width="132"
-                  height="198"
-                />
-                <strong>{item.title}</strong>
-                <small>
-                  {item.year || '—'}{#if item.voteAverage}&nbsp;· ★ {item.voteAverage.toFixed(
-                      1
-                    )}{/if}
-                </small>
-                {#if item.release && item.release.status !== 'online'}
-                  <ReleaseBadge release={item.release} {locale} />
-                {/if}
-              </a>
+              {@render similarTile(item)}
             {/each}
           </div>
         </section>
@@ -567,29 +575,18 @@
           <h2 class="section-title" id="topic-title">
             {tr(locale, 'Схожі за темою', 'Similar topics')}
           </h2>
-          <p class="topic-keywords">{similar.topic.keywords.join(' · ')}</p>
+          <p class="topic-keywords">
+            {#each similar.topic.keywords as keyword, index (keyword.id)}
+              {#if index}{TAG_SEPARATOR}{/if}<a
+                href={`/?keyword=${keyword.id}&keywordName=${encodeURIComponent(keyword.name)}`}
+                title={tr(locale, 'Усі фільми на цю тему', 'All titles on this topic')}
+                >{keyword.name}</a
+              >
+            {/each}
+          </p>
           <div class="h-scroll">
             {#each similar.topic.items as item (item.id)}
-              <a class="similar" href={`/details/${item.mediaType}/${item.id}`}>
-                <img
-                  src={item.poster ?? '/fallback-poster.svg'}
-                  srcset={posterSrcset(item.poster)}
-                  sizes={POSTER_SIZES.row}
-                  alt=""
-                  loading="lazy"
-                  width="132"
-                  height="198"
-                />
-                <strong>{item.title}</strong>
-                <small>
-                  {item.year || '—'}{#if item.voteAverage}&nbsp;· ★ {item.voteAverage.toFixed(
-                      1
-                    )}{/if}
-                </small>
-                {#if item.release && item.release.status !== 'online'}
-                  <ReleaseBadge release={item.release} {locale} />
-                {/if}
-              </a>
+              {@render similarTile(item)}
             {/each}
           </div>
         </section>
@@ -597,6 +594,44 @@
     </div>
   {/if}
 </main>
+
+{#snippet similarTile(item: SimilarItem)}
+  <a
+    class="similar"
+    class:current={item.current}
+    href={`/details/${item.mediaType}/${item.id}`}
+    aria-current={item.current ? 'page' : undefined}
+  >
+    <img
+      src={item.poster ?? '/fallback-poster.svg'}
+      srcset={posterSrcset(item.poster)}
+      sizes={POSTER_SIZES.row}
+      alt=""
+      loading="lazy"
+      width="132"
+      height="198"
+    />
+    <strong>{item.title}</strong>
+    <small>
+      {item.year || '—'}{#if item.voteAverage}&nbsp;· ★ {item.voteAverage.toFixed(1)}{/if}
+    </small>
+    {#if item.release && item.release.status !== 'online'}
+      <ReleaseBadge release={item.release} {locale} />
+    {/if}
+  </a>
+{/snippet}
+
+{#snippet seriesRow(group: SeriesGroup, titleId: string, title: string)}
+  <section aria-labelledby={titleId}>
+    <h2 class="section-title" id={titleId}>{title}</h2>
+    <p class="topic-keywords">{tr(locale, 'У порядку виходу', 'In release order')}</p>
+    <div class="h-scroll" use:centerCurrent>
+      {#each group.items as item (item.id)}
+        {@render similarTile(item)}
+      {/each}
+    </div>
+  </section>
+{/snippet}
 
 <style>
   .hero-skeleton {
@@ -980,10 +1015,21 @@
     font-size: 0.76rem;
   }
 
+  .similar.current img {
+    outline: 3px solid var(--primary);
+    outline-offset: -3px;
+  }
+
   .topic-keywords {
     margin: -6px 0 10px;
     color: var(--muted);
     font-size: 0.82rem;
+  }
+
+  .topic-keywords a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
   }
 
   .actor small {

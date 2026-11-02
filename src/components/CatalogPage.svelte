@@ -24,11 +24,14 @@
     defaultFilters,
     filtersFromParams,
     filtersToParams,
+    findTheme,
+    keywordFilters,
     movieGenres,
     presetFilters,
     presetOptions,
     releaseRange,
     shareableSearch,
+    THEMES,
     tvGenres,
     voteOptions,
     type CatalogFilters,
@@ -52,6 +55,9 @@
   let year = $state(initial.year);
   let sortBy = $state(initial.sortBy);
   let query = $state(initial.query);
+  // The text the results on screen were loaded for (the box may hold newer, unsent text).
+  let shownQuery = initial.query.trim();
+  let queryInput: HTMLInputElement | undefined = $state();
   let includeCountry = $state(initial.includeCountry);
   let ageRating = $state(initial.ageRating);
   let releaseDateGte = $state(initial.releaseDateGte);
@@ -59,6 +65,8 @@
   let releasePeriod: ReleasePeriod = $state(initial.releasePeriod);
   let limit = $state(initial.limit);
   let preset: FilterPreset = $state(initial.preset);
+  let keyword = $state(initial.keyword);
+  let keywordName = $state(initial.keywordName);
 
   let results: CatalogItem[] = $state([]);
   let page = $state(1);
@@ -108,7 +116,9 @@
       releaseDateLte,
       releasePeriod,
       limit,
-      preset
+      preset,
+      keyword,
+      keywordName
     };
   }
 
@@ -127,6 +137,8 @@
     releasePeriod = next.releasePeriod;
     limit = next.limit;
     preset = next.preset;
+    keyword = next.keyword;
+    keywordName = next.keywordName;
   }
 
   function resetFilters() {
@@ -148,6 +160,18 @@
       return;
     }
     setFilters(presetFilters(currentFilters(), value));
+    resetResults();
+    void fetchData(1);
+  }
+
+  /** A theme chip: tap to show the catalog on that motif, tap again to leave it. */
+  function applyKeyword(value: string, name = '') {
+    if (keyword === value) {
+      keyword = '';
+      keywordName = '';
+    } else {
+      setFilters(keywordFilters(currentFilters(), value, name));
+    }
     resetResults();
     void fetchData(1);
   }
@@ -219,6 +243,8 @@
     appending = append;
     error = '';
 
+    if (!append) shownQuery = query.trim();
+
     try {
       const params = buildParams(nextPage);
 
@@ -278,8 +304,19 @@
   async function onSearchSubmit() {
     suggestOpen = false;
     preset = '';
+    // TMDB text search cannot filter by tag: a search leaves the theme.
+    keyword = '';
+    keywordName = '';
     (document.activeElement as HTMLElement | null)?.blur();
     await fetchData(1);
+  }
+
+  /** "×" in the search box: empty it, keep the keyboard open, and drop the search results. */
+  async function clearSearch() {
+    query = '';
+    suggestOpen = false;
+    queryInput?.focus();
+    if (shownQuery) await fetchData(1);
   }
 
   async function onFiltersSubmit() {
@@ -391,6 +428,7 @@
     <input
       id="catalog-query"
       type="search"
+      bind:this={queryInput}
       bind:value={query}
       placeholder={tr(locale, 'Фільм, серіал або актор', 'Movie, series or actor')}
       enterkeyhint="search"
@@ -405,6 +443,19 @@
       onblur={() => (suggestOpen = false)}
       onkeydown={onSearchKeydown}
     />
+    {#if query}
+      <button
+        type="button"
+        class="clear-btn"
+        aria-label={tr(locale, 'Очистити пошук', 'Clear search')}
+        onmousedown={(event) => event.preventDefault()}
+        onclick={() => void clearSearch()}
+      >
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path d="M6 6l12 12M18 6 6 18" />
+        </svg>
+      </button>
+    {/if}
     <SearchSuggest
       bind:this={suggest}
       bind:open={suggestOpen}
@@ -451,6 +502,25 @@
         onclick={() => applyPreset(option.value)}
       >
         {tr(locale, option.uk, option.en)}
+      </button>
+    {/each}
+  </div>
+
+  <div class="chips themes" role="group" aria-label={tr(locale, 'Теми', 'Themes')}>
+    {#if keyword && !findTheme(keyword)}
+      <button type="button" class="chip" aria-pressed="true" onclick={() => applyKeyword(keyword)}>
+        {keywordName || `#${keyword}`}
+        <span aria-hidden="true">×</span>
+      </button>
+    {/if}
+    {#each THEMES as theme (theme.keyword)}
+      <button
+        type="button"
+        class="chip"
+        aria-pressed={keyword === theme.keyword}
+        onclick={() => applyKeyword(theme.keyword)}
+      >
+        {tr(locale, theme.uk, theme.en)}
       </button>
     {/each}
   </div>
@@ -830,6 +900,28 @@
     color: var(--text);
     font-size: 16px;
     outline: none;
+  }
+
+  /* Our own "×": iOS Safari has none, and the native one in Chrome is tiny. */
+  .search input::-webkit-search-cancel-button {
+    display: none;
+  }
+
+  .clear-btn {
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+  }
+
+  .clear-btn:hover {
+    color: var(--text);
   }
 
   .filters-btn {

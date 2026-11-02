@@ -106,6 +106,7 @@ async function loadByConfig(args: {
   minRating: string;
   minVotes: string;
   genre: string;
+  keyword: string;
   ageRating: string;
   releaseDateGte: string;
   releaseDateLte: string;
@@ -122,6 +123,7 @@ async function loadByConfig(args: {
     minRating,
     minVotes,
     genre,
+    keyword,
     ageRating,
     releaseDateGte,
     releaseDateLte,
@@ -141,6 +143,7 @@ async function loadByConfig(args: {
     'vote_average.gte': minRating,
     'vote_count.gte': minVotes,
     with_genres: withGenres || undefined,
+    with_keywords: keyword || undefined,
     with_origin_country: includeCountry || undefined,
     language
   };
@@ -262,6 +265,8 @@ export const GET: APIRoute = async ({ url }) => {
     const minRating = (url.searchParams.get('minRating') ?? '').trim();
     const minVotes = (url.searchParams.get('minVotes') ?? '').trim();
     const genre = (url.searchParams.get('genre') ?? '').trim();
+    const rawKeyword = (url.searchParams.get('keyword') ?? '').trim();
+    const keyword = /^\d+$/.test(rawKeyword) ? rawKeyword : '';
     const ageRating = (url.searchParams.get('ageRating') ?? '').trim();
     const releaseDateGte = (url.searchParams.get('releaseDateGte') ?? '').trim();
     const releaseDateLte = (url.searchParams.get('releaseDateLte') ?? '').trim();
@@ -282,6 +287,7 @@ export const GET: APIRoute = async ({ url }) => {
               minRating,
               minVotes,
               genre: '',
+              keyword,
               ageRating,
               releaseDateGte,
               releaseDateLte,
@@ -298,6 +304,7 @@ export const GET: APIRoute = async ({ url }) => {
               minRating,
               minVotes,
               genre: '',
+              keyword,
               ageRating,
               releaseDateGte,
               releaseDateLte,
@@ -316,6 +323,7 @@ export const GET: APIRoute = async ({ url }) => {
               minRating,
               minVotes,
               genre,
+              keyword,
               ageRating,
               releaseDateGte,
               releaseDateLte,

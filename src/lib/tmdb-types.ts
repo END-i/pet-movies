@@ -37,6 +37,8 @@ export interface TmdbPersonResponse {
 
 export interface TmdbSimilarSource {
   genres?: Array<{ id: number }>;
+  /** Movies only: the series (collection) the film is part of. */
+  belongs_to_collection?: { id: number; name?: string } | null;
   keywords?: { keywords?: Keyword[]; results?: Keyword[] };
   recommendations?: { results?: TmdbListItem[] };
   similar?: { results?: TmdbListItem[] };

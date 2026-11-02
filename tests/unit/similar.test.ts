@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+  collectionName,
   filterSimilar,
+  findUniverse,
+  genresFit,
   pickTopicKeywords,
   rankByKeywordOverlap,
+  seriesItems,
   toSimilarItem,
   type TmdbListItem
 } from '../../src/lib/similar';
@@ -127,11 +131,100 @@ describe('rankByKeywordOverlap', () => {
     const ranked = rankByKeywordOverlap(candidates, keywords, source);
     expect(ranked.items.map((entry) => entry.id)).toEqual([11, 12, 13]);
     // Named by the keywords shared most often (trimmed).
-    expect(ranked.keywords).toEqual(['small town', 'time travel', 'paradox']);
+    expect(ranked.keywords.map((keyword) => keyword.name)).toEqual([
+      'small town',
+      'time travel',
+      'paradox'
+    ]);
   });
 
   it('returns nothing when no title shares enough keywords', () => {
     const ranked = rankByKeywordOverlap([item({ id: 10 })], new Map([[10, [1]]]), source);
     expect(ranked).toEqual({ items: [], keywords: [] });
+  });
+});
+
+describe('genresFit', () => {
+  const romanceDrama = [10749, 18];
+
+  it('drops a mood genre the source does not have: no horror for a melodrama', () => {
+    expect(genresFit([18, 27, 878], romanceDrama, 'movie')).toBe(false);
+    expect(genresFit([10749, 10751], romanceDrama, 'movie')).toBe(false);
+    expect(genresFit([27, 53], [27, 53], 'movie')).toBe(true);
+  });
+
+  it('needs a shared genre other than Drama', () => {
+    expect(genresFit([18, 10749], romanceDrama, 'movie')).toBe(true);
+    // Pirates of Silicon Valley next to The Notebook: only Drama in common.
+    expect(genresFit([18, 10770], romanceDrama, 'movie')).toBe(false);
+    // A pure drama is matched by Drama.
+    expect(genresFit([18, 36], [18], 'movie')).toBe(true);
+  });
+
+  it('uses the TV mood genres for series', () => {
+    expect(genresFit([10764, 35], [35, 18], 'tv')).toBe(false);
+    expect(genresFit([35], [35, 18], 'tv')).toBe(true);
+  });
+
+  it('keeps titles when genres are unknown', () => {
+    expect(genresFit(undefined, romanceDrama, 'movie')).toBe(true);
+    expect(genresFit([27], [], 'movie')).toBe(true);
+  });
+
+  it('is applied by filterSimilar when the source genres are given', () => {
+    const list = [
+      item({ id: 1, genre_ids: [10749, 18] }),
+      item({ id: 2, genre_ids: [18, 27] }),
+      item({ id: 3, genre_ids: [18] })
+    ];
+    const result = filterSimilar(list, {
+      currentId: 99,
+      isAnimation: false,
+      hiddenIds: [],
+      genres: { ids: romanceDrama, mediaType: 'movie' }
+    });
+    expect(result.map((entry) => entry.id)).toEqual([1]);
+  });
+});
+
+describe('series', () => {
+  const toItem = (entry: TmdbListItem) => toSimilarItem(entry, 'movie', null, '2026-11-02');
+
+  it('lists parts in release order with unannounced ones last, the open one marked', () => {
+    const items = seriesItems(
+      [
+        item({ id: 3, release_date: '' }),
+        item({ id: 2, release_date: '2015-04-22' }),
+        item({ id: 1, release_date: '2012-04-25' }),
+        item({ id: 1, release_date: '2012-04-25' }),
+        item({ id: 4, release_date: '2016-01-01', original_language: 'ru' })
+      ],
+      2,
+      toItem
+    );
+    expect(items.map((entry) => entry.id)).toEqual([1, 2, 3]);
+    expect(items.map((entry) => entry.current ?? false)).toEqual([false, true, false]);
+  });
+
+  it('finds a known universe by its keyword', () => {
+    expect(
+      findUniverse([
+        { id: 9715, name: 'superhero' },
+        { id: 180547, name: 'marvel cinematic universe (mcu)' }
+      ])
+    ).toEqual({ id: 180547, name: 'Marvel Cinematic Universe' });
+    expect(findUniverse([{ id: 9715, name: 'superhero' }])).toBeNull();
+    expect(findUniverse(undefined)).toBeNull();
+  });
+
+  it('drops the "Collection" word in every language TMDB uses', () => {
+    expect(collectionName('The Avengers Collection')).toBe('The Avengers');
+    expect(collectionName('Месники | Колекція')).toBe('Месники');
+    expect(collectionName('Отмъстителите (поредица)')).toBe('Отмъстителите');
+    expect(collectionName("Marvel's The Avengers Filmreihe")).toBe("Marvel's The Avengers");
+    expect(collectionName('Los Vengadores - Colección')).toBe('Los Vengadores');
+    expect(collectionName('Avengers - Saga')).toBe('Avengers');
+    expect(collectionName('Collection')).toBe('Collection');
+    expect(collectionName(undefined)).toBe('');
   });
 });

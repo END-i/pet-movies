@@ -224,7 +224,29 @@ const fr: Record<string, string> = {
   Writing: 'Scénario',
   'y.o.': 'ans',
   Year: 'Année',
-  'You are offline': 'Pas de connexion internet'
+  'You are offline': 'Pas de connexion internet',
+  'Clear search': 'Effacer la recherche',
+  Themes: 'Thèmes',
+  'Film series: {name}': 'Saga : {name}',
+  'Universe: {name}': 'Univers : {name}',
+  'All titles on this topic': 'Tous les titres sur ce thème',
+  'In release order': 'Dans l’ordre de sortie',
+  'Time travel': 'Voyage dans le temps',
+  Heists: 'Braquages',
+  Space: 'Espace',
+  Superheroes: 'Super-héros',
+  Survival: 'Survie',
+  'Post-apocalypse': 'Post-apocalypse',
+  'Artificial intelligence': 'Intelligence artificielle',
+  Zombies: 'Zombies',
+  Aliens: 'Extraterrestres',
+  Dinosaurs: 'Dinosaures',
+  'World War II': 'Seconde Guerre mondiale',
+  'True stories': 'Histoires vraies',
+  Mafia: 'Mafia',
+  'Road trips': 'Road trips',
+  Sports: 'Sport',
+  Christmas: 'Noël'
 };
 
 export default fr;

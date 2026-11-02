@@ -95,7 +95,10 @@ export const similarTitles = {
     }
   ],
   topic: {
-    keywords: ['simulated reality', 'dystopia'],
+    keywords: [
+      { id: 4565, name: 'dystopia' },
+      { id: 4366, name: 'simulated reality' }
+    ],
     items: [
       {
         id: 1091,
@@ -107,7 +110,33 @@ export const similarTitles = {
         release: { status: 'online' }
       }
     ]
-  }
+  },
+  collection: {
+    id: 2344,
+    name: 'Матриця',
+    items: [
+      {
+        id: 603,
+        mediaType: 'movie',
+        title: 'Матриця',
+        year: '1999',
+        poster: null,
+        voteAverage: 8.2,
+        release: { status: 'online' },
+        current: true
+      },
+      {
+        id: 604,
+        mediaType: 'movie',
+        title: 'Матриця: Перезавантаження',
+        year: '2003',
+        poster: null,
+        voteAverage: 7.1,
+        release: { status: 'online' }
+      }
+    ]
+  },
+  universe: null
 };
 
 export const person = {

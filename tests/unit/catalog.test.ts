@@ -5,6 +5,8 @@ import {
   defaultFilters,
   filtersFromParams,
   filtersToParams,
+  findTheme,
+  keywordFilters,
   presetFilters,
   releaseRange,
   shareableSearch
@@ -95,5 +97,51 @@ describe('catalog URL', () => {
     expect(restored.filters.releaseDateGte).toBe('2026-09-28');
     expect(restored.filters.ageRating).toBe('12');
     expect(restored.page).toBe(1);
+  });
+
+  it('restores a theme or tag from the URL and rejects a bad keyword', () => {
+    const restored = filtersFromParams(
+      new URLSearchParams('keyword=4379&keywordName=time%20travel'),
+      defaultFilters(today),
+      today
+    );
+    expect(restored.filters.keyword).toBe('4379');
+    expect(restored.filters.keywordName).toBe('time travel');
+    // Not limited to the default recent period.
+    expect(restored.filters.releasePeriod).toBe('all');
+    expect(restored.filters.releaseDateGte).toBe('');
+    const bad = filtersFromParams(new URLSearchParams('keyword=1,2'), defaultFilters(today), today);
+    expect(bad.filters.keyword).toBe('');
+  });
+});
+
+describe('themes', () => {
+  it('a theme shows the whole catalog on that motif and leaves search and presets', () => {
+    const current = { ...presetFilters(defaultFilters(today), 'family', today), query: 'abc' };
+    const next = keywordFilters(current, '4379', 'time travel');
+    expect(next).toMatchObject({
+      keyword: '4379',
+      // A known theme has its own translated name.
+      keywordName: '',
+      query: '',
+      preset: '',
+      releasePeriod: 'all',
+      releaseDateGte: '',
+      sortBy: 'popularity.desc'
+    });
+    expect(keywordFilters(current, '123', 'heist gone wrong').keywordName).toBe('heist gone wrong');
+    expect(filtersToParams(next, 1, { locale: 'uk', hiddenGenres: [] }).get('keyword')).toBe(
+      '4379'
+    );
+  });
+
+  it('a preset leaves the theme', () => {
+    const themed = keywordFilters(defaultFilters(today), '4379');
+    expect(presetFilters(themed, 'new', today).keyword).toBe('');
+  });
+
+  it('finds a theme by keyword', () => {
+    expect(findTheme('9715')?.en).toBe('Superheroes');
+    expect(findTheme('1')).toBeUndefined();
   });
 });

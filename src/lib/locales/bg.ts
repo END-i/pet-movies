@@ -224,7 +224,29 @@ const bg: Record<string, string> = {
   Writing: 'Сценарии',
   'y.o.': 'г.',
   Year: 'Година',
-  'You are offline': 'Няма връзка с интернет'
+  'You are offline': 'Няма връзка с интернет',
+  'Clear search': 'Изчисти търсенето',
+  Themes: 'Теми',
+  'Film series: {name}': 'Филмова поредица: {name}',
+  'Universe: {name}': 'Вселена: {name}',
+  'All titles on this topic': 'Всички заглавия по тази тема',
+  'In release order': 'По реда на излизане',
+  'Time travel': 'Пътуване във времето',
+  Heists: 'Обири',
+  Space: 'Космос',
+  Superheroes: 'Супергерои',
+  Survival: 'Оцеляване',
+  'Post-apocalypse': 'Постапокалипсис',
+  'Artificial intelligence': 'Изкуствен интелект',
+  Zombies: 'Зомбита',
+  Aliens: 'Извънземни',
+  Dinosaurs: 'Динозаври',
+  'World War II': 'Втората световна война',
+  'True stories': 'Истински истории',
+  Mafia: 'Мафия',
+  'Road trips': 'Пътешествия с кола',
+  Sports: 'Спорт',
+  Christmas: 'Коледа'
 };
 
 export default bg;

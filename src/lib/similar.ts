@@ -13,13 +13,27 @@ export interface SimilarItem {
   poster: string | null;
   voteAverage: number;
   release: ReleaseInfo | null;
+  /** In a series list: the title whose page is open. */
+  current?: boolean;
+}
+
+/** Films of one series (TMDB collection) or one shared universe (franchise keyword). */
+export interface SeriesGroup {
+  id: number;
+  name: string;
+  /** In release order; the open title is marked `current`. */
+  items: SimilarItem[];
 }
 
 export interface SimilarPayload {
   /** TMDB recommendations ("people who liked this also watched"), or `similar` as a fallback. */
   recommended: SimilarItem[];
   /** Titles sharing the most specific keywords; `keywords` are TMDB tags (English). */
-  topic: { keywords: string[]; items: SimilarItem[] };
+  topic: { keywords: Keyword[]; items: SimilarItem[] };
+  /** Parts of the same film series: sequels and prequels. */
+  collection: SeriesGroup | null;
+  /** All titles of a shared universe, such as the Marvel Cinematic Universe. */
+  universe: SeriesGroup | null;
 }
 
 export interface TmdbListItem {
@@ -113,6 +127,35 @@ export function pickTopicKeywords(keywords: Keyword[] | undefined, max = 12): Ke
     .slice(0, max);
 }
 
+// Genres that set the mood of a whole title: a romance should not suggest horror, an adult drama
+// not a family film. A candidate with one of these needs it on the source title too.
+const MOOD_GENRES: Record<MediaType, number[]> = {
+  movie: [27, 99, 10751], // Horror, Documentary, Family
+  tv: [99, 10762, 10763, 10764, 10766, 10767] // Documentary, Kids, News, Reality, Soap, Talk
+};
+
+// Drama is on about half of all titles, so sharing only Drama says little. Animation is matched
+// separately (cartoons stay cartoons).
+const BROAD_GENRES = new Set([18, ANIMATION_GENRE_ID]);
+
+/**
+ * Whether a candidate's genres suit the source title: no mood genre the source does not have,
+ * and at least one shared genre that is not Drama (or Drama itself, for a pure drama).
+ * Titles with unknown genres are kept.
+ */
+export function genresFit(
+  candidate: number[] | undefined,
+  source: number[],
+  mediaType: MediaType
+): boolean {
+  if (!source.length || !candidate?.length) return true;
+  const own = new Set(source);
+  if (MOOD_GENRES[mediaType].some((id) => candidate.includes(id) && !own.has(id))) return false;
+  const specific = source.filter((id) => !BROAD_GENRES.has(id));
+  const wanted = specific.length ? specific : source;
+  return candidate.some((id) => wanted.includes(id));
+}
+
 /** A candidate needs this many keywords in common to count as "same topic". */
 export const MIN_SHARED_KEYWORDS = 2;
 
@@ -125,7 +168,7 @@ export function rankByKeywordOverlap(
   candidateKeywords: Map<number, number[]>,
   sourceKeywords: Keyword[],
   maxLabels = 3
-): { items: TmdbListItem[]; keywords: string[] } {
+): { items: TmdbListItem[]; keywords: Keyword[] } {
   const sourceIds = new Set(sourceKeywords.map((keyword) => keyword.id));
   const usage = new Map<number, number>();
 
@@ -149,7 +192,7 @@ export function rankByKeywordOverlap(
     .filter((keyword) => usage.has(keyword.id))
     .sort((left, right) => (usage.get(right.id) ?? 0) - (usage.get(left.id) ?? 0))
     .slice(0, maxLabels)
-    .map((keyword) => keyword.name.trim());
+    .map((keyword) => ({ id: keyword.id, name: keyword.name.trim() }));
 
   return { items: scored.map(({ item }) => item), keywords };
 }
@@ -157,10 +200,17 @@ export function rankByKeywordOverlap(
 /**
  * Same rules as the catalog: no current title, no Russian-language titles, the user's hidden
  * genres, and the format kept (cartoons stay cartoons, live action stays live action).
+ * With `genres` (the source title's), candidates must also suit them (`genresFit`).
  */
 export function filterSimilar(
   items: TmdbListItem[] | undefined,
-  options: { currentId: number; isAnimation: boolean; hiddenIds: number[]; exclude?: Set<number> }
+  options: {
+    currentId: number;
+    isAnimation: boolean;
+    hiddenIds: number[];
+    exclude?: Set<number>;
+    genres?: { ids: number[]; mediaType: MediaType };
+  }
 ): TmdbListItem[] {
   const seen = new Set<number>([options.currentId, ...(options.exclude ?? [])]);
 
@@ -170,6 +220,9 @@ export function filterSimilar(
     const genres = item.genre_ids ?? [];
     if (genres.includes(ANIMATION_GENRE_ID) !== options.isAnimation) return false;
     if (!isGenreAllowed(genres, options.hiddenIds)) return false;
+    if (options.genres && !genresFit(genres, options.genres.ids, options.genres.mediaType)) {
+      return false;
+    }
     seen.add(item.id);
     return true;
   });
@@ -193,4 +246,53 @@ export function toSimilarItem(
     release:
       mediaType === 'movie' ? movieRelease({}, date || undefined, today) : tvRelease(date, today)
   };
+}
+
+// Franchise keywords that join films of different series into one universe. TMDB has no
+// "universe" object, only these tags; the names are shown as they are known in every language.
+export const UNIVERSE_KEYWORDS: Record<number, string> = {
+  180547: 'Marvel Cinematic Universe',
+  229266: 'DC Extended Universe',
+  312528: 'DC Universe',
+  380322: 'MonsterVerse',
+  361757: 'Middle-earth',
+  379196: 'Star Wars'
+};
+
+export function findUniverse(keywords: Keyword[] | undefined): { id: number; name: string } | null {
+  const match = (keywords ?? []).find((keyword) => UNIVERSE_KEYWORDS[keyword.id]);
+  return match ? { id: match.id, name: UNIVERSE_KEYWORDS[match.id] } : null;
+}
+
+const releaseKey = (item: TmdbListItem) => item.release_date || item.first_air_date || '9999';
+
+/**
+ * A series list in release order (unannounced dates last), the open title marked. Russian-language
+ * titles are dropped as everywhere else; hidden genres are not, so a series stays whole.
+ */
+export function seriesItems(
+  parts: TmdbListItem[] | undefined,
+  currentId: number,
+  toItem: (item: TmdbListItem) => SimilarItem
+): SimilarItem[] {
+  const seen = new Set<number>();
+  return (parts ?? [])
+    .filter((item) => {
+      if (seen.has(item.id) || item.original_language === 'ru') return false;
+      seen.add(item.id);
+      return true;
+    })
+    .sort((left, right) => releaseKey(left).localeCompare(releaseKey(right)))
+    .map((item) => ({ ...toItem(item), ...(item.id === currentId ? { current: true } : {}) }));
+}
+
+// How TMDB ends collection names in the app's languages: "The Avengers Collection",
+// "Месники | Колекція", "Отмъстителите (поредица)", "… Filmreihe", "… - Colección", "… - Saga".
+const COLLECTION_SUFFIX =
+  /\s*(?:[|:–-]\s*)?(?:Collection|Колекція|\(поредица\)|Filmreihe|Sammlung|Colección|Saga)\s*$/i;
+
+/** A collection name without the "Collection" word, e.g. "Месники | Колекція" → "Месники". */
+export function collectionName(name: string | undefined): string {
+  const trimmed = (name ?? '').trim();
+  return trimmed.replace(COLLECTION_SUFFIX, '').trim() || trimmed;
 }
