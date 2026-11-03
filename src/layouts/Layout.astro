@@ -42,6 +42,8 @@ const { title, active = null } = Astro.props;
         } catch (e) {}
       })();
     </script>
+    <!-- Vercel Web Analytics (cookie-free visit counts, enabled in the Vercel dashboard). -->
+    {import.meta.env.PROD && <script defer src="/_vercel/insights/script.js" is:inline></script>}
   </head>
   <body>
     <script is:inline>
