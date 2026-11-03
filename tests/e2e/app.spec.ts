@@ -417,7 +417,7 @@ test('details page shows recommended and same-topic titles', async ({ page }) =>
   await expect(series.locator('[aria-current="page"]')).toContainText('Матриця');
 
   const topic = page.getByRole('region', { name: 'Схожі за темою' });
-  await expect(topic.locator('.topic-keywords')).toHaveText('dystopia · simulated reality');
+  await expect(topic.locator('.topic-keywords')).toHaveText('антиутопія · simulated reality');
   await expect(topic.getByRole('link', { name: /Тринадцятий поверх/ })).toBeVisible();
   await expectNoHorizontalScroll(page);
 

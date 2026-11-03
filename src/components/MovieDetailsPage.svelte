@@ -23,6 +23,7 @@
     translationLanguage
   } from '../lib/translations';
   import { intlLocale, tr, trf } from '../lib/i18n';
+  import { keywordLabel } from '../lib/keywords';
   import { POSTER_SIZES, posterSrcset } from '../lib/images';
   import type { MovieDetails } from '../lib/types';
   import type { SeriesGroup, SimilarItem, SimilarPayload } from '../lib/similar';
@@ -580,7 +581,7 @@
               {#if index}{TAG_SEPARATOR}{/if}<a
                 href={`/?keyword=${keyword.id}&keywordName=${encodeURIComponent(keyword.name)}`}
                 title={tr(locale, 'Усі фільми на цю тему', 'All titles on this topic')}
-                >{keyword.name}</a
+                >{keywordLabel(keyword.name, locale)}</a
               >
             {/each}
           </p>

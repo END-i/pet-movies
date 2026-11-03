@@ -14,6 +14,7 @@
   import { TRANSLATION_LANGUAGES } from '../lib/translations';
   import { HIDEABLE_GENRES } from '../lib/genres';
   import { intlLocale, tr } from '../lib/i18n';
+  import { keywordLabel } from '../lib/keywords';
   import { AGE_STEPS } from '../lib/ageRating';
   import { buildPaginationTokens } from '../lib/pagination';
   import {
@@ -509,7 +510,7 @@
   <div class="chips themes" role="group" aria-label={tr(locale, 'Теми', 'Themes')}>
     {#if keyword && !findTheme(keyword)}
       <button type="button" class="chip" aria-pressed="true" onclick={() => applyKeyword(keyword)}>
-        {keywordName || `#${keyword}`}
+        {keywordName ? keywordLabel(keywordName, locale) : `#${keyword}`}
         <span aria-hidden="true">×</span>
       </button>
     {/if}
