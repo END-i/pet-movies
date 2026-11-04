@@ -8,8 +8,8 @@
 
 ## Де працює (04.11.2026)
 
-- Продакшн: **Vercel**, <https://pet-movies.vercel.app/> (адаптер `@astrojs/vercel`, функції для TMDB). Перенос на Cloudflare потребував би `@astrojs/cloudflare` і `TMDB_API_KEY` у Cloudflare — не планується.
-- Аналітика: Vercel Web Analytics (працює). Для Cloudflare Web Analytics на цьому сайті потрібен JS-сніпет із токеном.
+- Продакшн: **Vercel**, <https://pet-movies.vercel.app/> (адаптер `@astrojs/vercel`, функції для TMDB). Лише Vercel (рішення власника 04.11); перенос на Cloudflare потребував би `@astrojs/cloudflare` і `TMDB_API_KEY` — не планується.
+- Аналітика: Vercel Web Analytics (налаштована власником). На Cloudflare movies не розгортається.
 - CI на GitHub: зелений (перевірено `gh` 04.11).
 
 ## 000. Відгук 04.11.2026: сортування, рекомендації, прокрутка, фільтри
