@@ -249,7 +249,9 @@ const bg: Record<string, string> = {
   Christmas: 'Коледа',
   'By title (A–Z)': 'По заглавие (А–Я)',
   'Most votes': 'Най-много гласове',
-  'Top box office (movies)': 'Най-касови (филми)'
+  'Top box office (movies)': 'Най-касови (филми)',
+  'With a text search only the page of results is sorted':
+    'При търсене по текст се подрежда само страницата с резултати'
 };
 
 export default bg;

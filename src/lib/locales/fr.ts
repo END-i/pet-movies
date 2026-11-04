@@ -249,7 +249,9 @@ const fr: Record<string, string> = {
   Christmas: 'Noël',
   'By title (A–Z)': 'Par titre (A–Z)',
   'Most votes': 'Le plus de votes',
-  'Top box office (movies)': 'Meilleures recettes (films)'
+  'Top box office (movies)': 'Meilleures recettes (films)',
+  'With a text search only the page of results is sorted':
+    'Avec une recherche par texte, seule la page de résultats est triée'
 };
 
 export default fr;

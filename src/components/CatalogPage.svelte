@@ -727,6 +727,16 @@
             >{tr(locale, 'Найкасовіші (фільми)', 'Top box office (movies)')}</option
           >
         </select>
+        {#if query.trim()}
+          <!-- TMDB text search takes no sort: only the page of results on screen is reordered. -->
+          <small class="hint"
+            >{tr(
+              locale,
+              'Під час пошуку текстом сортується лише сторінка результатів',
+              'With a text search only the page of results is sorted'
+            )}</small
+          >
+        {/if}
       </label>
 
       <label>
