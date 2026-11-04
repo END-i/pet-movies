@@ -35,6 +35,7 @@
     THEMES,
     tvGenres,
     voteOptions,
+    cleanVotes,
     type CatalogFilters,
     type Category,
     type DiscoverPayload,
@@ -720,6 +721,11 @@
           <option value="popularity.desc">{tr(locale, 'Популярні', 'Most popular')}</option>
           <option value="vote_average.desc">{tr(locale, 'Найвищий рейтинг', 'Top rated')}</option>
           <option value="primary_release_date.asc">{tr(locale, 'Найстаріші', 'Oldest')}</option>
+          <option value="vote_count.desc">{tr(locale, 'Найбільше голосів', 'Most votes')}</option>
+          <option value="title.asc">{tr(locale, 'За назвою (А–Я)', 'By title (A–Z)')}</option>
+          <option value="revenue.desc"
+            >{tr(locale, 'Найкасовіші (фільми)', 'Top box office (movies)')}</option
+          >
         </select>
       </label>
 
@@ -764,15 +770,24 @@
         </label>
         <label>
           {tr(locale, 'Голосів від', 'Votes from')}
-          <select class="input" bind:value={minVotes}>
+          <!-- Any number can be typed; the list only suggests the usual ones. -->
+          <input
+            class="input"
+            type="number"
+            min="0"
+            max="1000000"
+            step="1"
+            inputmode="numeric"
+            list="vote-presets"
+            placeholder={tr(locale, 'Будь-яка кількість', 'Any')}
+            value={minVotes}
+            oninput={(event) => (minVotes = cleanVotes(event.currentTarget.value))}
+          />
+          <datalist id="vote-presets">
             {#each voteOptions as votes (votes)}
-              <option value={votes}>
-                {votes === '0'
-                  ? tr(locale, 'Будь-яка кількість', 'Any')
-                  : Number(votes).toLocaleString(intlLocale(locale))}
-              </option>
+              <option value={votes}>{Number(votes).toLocaleString(intlLocale(locale))}</option>
             {/each}
-          </select>
+          </datalist>
         </label>
       </div>
 

@@ -1,10 +1,25 @@
 import type { CatalogItem, MediaType } from './types';
 
+/** The sorts the catalog offers (TMDB names for movies). */
+export const SORTS = [
+  'popularity.desc',
+  'primary_release_date.desc',
+  'primary_release_date.asc',
+  'vote_average.desc',
+  'vote_count.desc',
+  'title.asc',
+  'revenue.desc'
+] as const;
+
+/** TMDB's name of a sort for series: dates and titles are named differently, box office is none. */
 export function normalizeSort(sortBy: string, mediaType: MediaType): string {
   if (mediaType === 'movie') return sortBy;
   if (sortBy.startsWith('primary_release_date.')) {
     return sortBy.replace('primary_release_date', 'first_air_date');
   }
+  if (sortBy.startsWith('title.')) return sortBy.replace('title', 'name');
+  // Series have no box office: the most voted come first instead.
+  if (sortBy.startsWith('revenue.')) return 'vote_count.desc';
   return sortBy;
 }
 
@@ -14,7 +29,14 @@ export function mergeCatalogResults(items: CatalogItem[], sortBy: string): Catal
 
   if (sortBy.includes('vote_average')) {
     sorted.sort((left, right) => right.voteAverage - left.voteAverage);
-  } else if (sortBy.includes('popularity')) {
+  } else if (sortBy.startsWith('title.')) {
+    sorted.sort((left, right) => left.title.localeCompare(right.title));
+  } else if (
+    sortBy.includes('popularity') ||
+    sortBy.includes('vote_count') ||
+    sortBy.includes('revenue')
+  ) {
+    // Popularity and box office are not in the list items: the vote count is the closest order.
     sorted.sort((left, right) => right.voteCount - left.voteCount);
   } else if (sortBy.endsWith('.asc')) {
     sorted.sort((left, right) => left.year.localeCompare(right.year));

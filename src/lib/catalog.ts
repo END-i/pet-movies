@@ -2,6 +2,7 @@ import { RECENT_RELEASE_DAYS } from './config';
 import { normalizeAgeFilter } from './ageRating';
 import { parsePositiveInteger } from './pagination';
 import type { CatalogItem } from './types';
+import { SORTS } from './discover';
 
 // Catalog filters, presets and their URL form; the page component only holds the state.
 
@@ -69,6 +70,13 @@ export const tvGenres = [
 // Titles with only a handful of votes are mostly unreleased or obscure; hide them by default.
 export const DEFAULT_MIN_VOTES = '50';
 export const voteOptions = ['0', '10', '20', '50', '100', '200', '1000', '5000'];
+
+/** A typed vote count: whole digits up to a million; anything else means "any" (''). */
+export function cleanVotes(raw: string): string {
+  const value = raw.trim();
+  if (!/^\d+$/.test(value)) return '';
+  return String(Math.min(1_000_000, Number(value)));
+}
 
 export const countryOptions = [
   { code: 'UA', uk: 'Україна', en: 'Ukraine' },
@@ -354,9 +362,11 @@ export function filtersFromParams(
     category: category && CATEGORIES.includes(category) ? category : current.category,
     genre: text('genre', current.genre),
     minRating: text('minRating', current.minRating),
-    minVotes: text('minVotes', current.minVotes),
+    minVotes: params.has('minVotes') ? cleanVotes(params.get('minVotes') ?? '') : current.minVotes,
     year: text('year', current.year),
-    sortBy: text('sortBy', current.sortBy),
+    sortBy: (SORTS as readonly string[]).includes(params.get('sortBy') ?? '')
+      ? (params.get('sortBy') as string)
+      : current.sortBy,
     query: text('query', current.query),
     includeCountry: text('includeCountry', current.includeCountry).toUpperCase(),
     ageRating: params.has('ageRating')

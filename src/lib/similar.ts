@@ -195,6 +195,19 @@ export function genresFit(
   return candidate.some((id) => wanted.includes(id));
 }
 
+/**
+ * Genres for the "same genres" fallback when TMDB has few or no recommendations: the specific
+ * genres only (not Drama or Animation), or Drama for a pure drama; at most two, so the match
+ * stays close (TMDB's `with_genres` with commas means all of them).
+ */
+export function fallbackGenres(source: number[]): number[] {
+  const specific = source.filter((id) => !BROAD_GENRES.has(id));
+  return (specific.length ? specific : source.filter((id) => id !== ANIMATION_GENRE_ID)).slice(
+    0,
+    2
+  );
+}
+
 /** A candidate needs this many keywords in common to count as "same topic". */
 export const MIN_SHARED_KEYWORDS = 2;
 

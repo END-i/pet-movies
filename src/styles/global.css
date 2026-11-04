@@ -367,6 +367,15 @@ h3 {
   }
 }
 
+/* Not on iPhone/iPad (WebKit, every iOS browser): going from a long page (a scrolled catalog)
+   to a short one (a title without a trailer) kept the old page's height there, so the page
+   scrolled far past its end and the fixed bottom nav stuck in the middle of the screen. */
+@supports (-webkit-touch-callout: none) {
+  @view-transition {
+    navigation: none;
+  }
+}
+
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation-duration: 180ms;

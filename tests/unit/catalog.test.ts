@@ -5,6 +5,7 @@ import {
   defaultFilters,
   filtersFromParams,
   filtersToParams,
+  cleanVotes,
   findTheme,
   keywordFilters,
   presetFilters,
@@ -143,5 +144,32 @@ describe('themes', () => {
   it('finds a theme by keyword', () => {
     expect(findTheme('9715')?.en).toBe('Superheroes');
     expect(findTheme('1')).toBeUndefined();
+  });
+});
+
+describe('typed filters', () => {
+  it('takes any whole vote count and treats the rest as "any"', () => {
+    expect(cleanVotes('350')).toBe('350');
+    expect(cleanVotes(' 007 ')).toBe('7');
+    expect(cleanVotes('5000000')).toBe('1000000');
+    expect(cleanVotes('-3')).toBe('');
+    expect(cleanVotes('1.5')).toBe('');
+    expect(cleanVotes('')).toBe('');
+  });
+
+  it('restores only known sorts and clean vote counts from a link', () => {
+    const restored = filtersFromParams(
+      new URLSearchParams('sortBy=title.asc&minVotes=350'),
+      defaultFilters(today),
+      today
+    );
+    expect(restored.filters).toMatchObject({ sortBy: 'title.asc', minVotes: '350' });
+    const bad = filtersFromParams(
+      new URLSearchParams('sortBy=evil&minVotes=abc'),
+      defaultFilters(today),
+      today
+    );
+    expect(bad.filters.sortBy).toBe('popularity.desc');
+    expect(bad.filters.minVotes).toBe('');
   });
 });

@@ -246,7 +246,10 @@ const bg: Record<string, string> = {
   Mafia: 'Мафия',
   'Road trips': 'Пътешествия с кола',
   Sports: 'Спорт',
-  Christmas: 'Коледа'
+  Christmas: 'Коледа',
+  'By title (A–Z)': 'По заглавие (А–Я)',
+  'Most votes': 'Най-много гласове',
+  'Top box office (movies)': 'Най-касови (филми)'
 };
 
 export default bg;

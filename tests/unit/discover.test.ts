@@ -33,6 +33,9 @@ describe('normalizeSort', () => {
     expect(normalizeSort('primary_release_date.desc', 'movie')).toBe('primary_release_date.desc');
     expect(normalizeSort('primary_release_date.asc', 'tv')).toBe('first_air_date.asc');
     expect(normalizeSort('popularity.desc', 'tv')).toBe('popularity.desc');
+    expect(normalizeSort('title.asc', 'tv')).toBe('name.asc');
+    expect(normalizeSort('title.asc', 'movie')).toBe('title.asc');
+    expect(normalizeSort('revenue.desc', 'tv')).toBe('vote_count.desc');
   });
 });
 
@@ -42,6 +45,13 @@ describe('mergeCatalogResults', () => {
     item(2, { year: '2023', voteAverage: 8, voteCount: 10 }),
     item(3, { year: '1995', voteAverage: 7, voteCount: 900 })
   ];
+
+  it('sorts by title and by votes', () => {
+    const named = [item(1, { title: 'Яблуко' }), item(2, { title: 'Апельсин' })];
+    expect(mergeCatalogResults(named, 'title.asc').map((i) => i.id)).toEqual([2, 1]);
+    expect(mergeCatalogResults(items, 'vote_count.desc').map((i) => i.id)).toEqual([3, 1, 2]);
+    expect(mergeCatalogResults(items, 'revenue.desc').map((i) => i.id)).toEqual([3, 1, 2]);
+  });
 
   it('sorts by rating, popularity, newest and oldest', () => {
     expect(mergeCatalogResults(items, 'vote_average.desc').map((i) => i.id)).toEqual([2, 3, 1]);

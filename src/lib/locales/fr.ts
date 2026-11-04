@@ -246,7 +246,10 @@ const fr: Record<string, string> = {
   Mafia: 'Mafia',
   'Road trips': 'Road trips',
   Sports: 'Sport',
-  Christmas: 'Noël'
+  Christmas: 'Noël',
+  'By title (A–Z)': 'Par titre (A–Z)',
+  'Most votes': 'Le plus de votes',
+  'Top box office (movies)': 'Meilleures recettes (films)'
 };
 
 export default fr;

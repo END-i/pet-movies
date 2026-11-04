@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   collectionName,
+  fallbackGenres,
   filterSimilar,
   findUniverse,
   genresFit,
@@ -226,5 +227,15 @@ describe('series', () => {
     expect(collectionName('Avengers - Saga')).toBe('Avengers');
     expect(collectionName('Collection')).toBe('Collection');
     expect(collectionName(undefined)).toBe('');
+  });
+});
+
+describe('fallbackGenres', () => {
+  it('keeps the specific genres, at most two, and Drama only for a pure drama', () => {
+    expect(fallbackGenres([18, 10749])).toEqual([10749]);
+    expect(fallbackGenres([28, 12, 878])).toEqual([28, 12]);
+    expect(fallbackGenres([18])).toEqual([18]);
+    expect(fallbackGenres([16, 18])).toEqual([18]);
+    expect(fallbackGenres([])).toEqual([]);
   });
 });

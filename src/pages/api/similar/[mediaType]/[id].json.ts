@@ -5,6 +5,7 @@ import { hiddenGenreIds, parseHiddenGenres } from '../../../../lib/genres';
 import {
   ANIMATION_GENRE_ID,
   collectionName,
+  fallbackGenres,
   filterSimilar,
   findUniverse,
   MIN_SHARED_KEYWORDS,
@@ -120,6 +121,31 @@ export const GET: APIRoute = async ({ params, url }) => {
         [...(source.recommendations?.results ?? []), ...(source.similar?.results ?? [])],
         { currentId: id, isAnimation, hiddenIds, genres }
       );
+    }
+    // Little-known titles often have no TMDB recommendations at all: fall back to the best known
+    // titles of the same genres, so the section is not empty.
+    const byGenre = fallbackGenres(genreIds);
+    if (recommended.length < 4 && byGenre.length) {
+      const discovered = await tmdbRequest<{ results?: TmdbListItem[] }>(
+        `/discover/${mediaType}`,
+        {
+          with_genres: [...byGenre, ...(isAnimation ? [ANIMATION_GENRE_ID] : [])].join(','),
+          without_genres: isAnimation ? undefined : ANIMATION_GENRE_ID,
+          sort_by: 'vote_count.desc',
+          language
+        },
+        { ttlMs: TMDB_TTL.entity }
+      ).catch(() => ({ results: [] as TmdbListItem[] }));
+      recommended = [
+        ...recommended,
+        ...filterSimilar(discovered.results, {
+          currentId: id,
+          isAnimation,
+          hiddenIds,
+          genres,
+          exclude: new Set(recommended.map((item) => item.id))
+        })
+      ];
     }
     recommended = recommended.slice(0, SIMILAR_LIMIT);
 
