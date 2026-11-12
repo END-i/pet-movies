@@ -194,7 +194,7 @@ test('favorites: categories are created with + and deleted with the trash icon',
 test('hidden genres are remembered and sent with every search', async ({ page }) => {
   const { discoverRequests } = await mockApi(page);
   await gotoHydrated(page, '/');
-  await expect.poll(() => discoverRequests.at(-1)?.searchParams.get('minVotes')).toBe('50');
+  await expect.poll(() => discoverRequests.at(-1)?.searchParams.get('minVotes')).toBe('10'); // перший екран — «Новинки»
 
   await page.getByRole('button', { name: 'Фільтри' }).click();
   const sheet = page.getByRole('dialog', { name: 'Фільтри' });
@@ -338,6 +338,30 @@ test('every page shows the TMDB attribution required by its terms', async ({ pag
       'https://www.themoviedb.org/'
     );
   }
+});
+
+test('first screen is the "New releases" preset; a shared link does not inherit it', async ({
+  page
+}) => {
+  const { discoverRequests } = await mockApi(page);
+  await gotoHydrated(page, '/');
+  const presets = page.getByRole('group', { name: 'Добірки' });
+  await expect(presets.getByRole('button', { name: 'Новинки' })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  );
+  await expect.poll(() => discoverRequests.at(-1)?.searchParams.get('preset')).toBe('new');
+  expect(discoverRequests.at(-1)?.searchParams.get('sortBy')).toBe('primary_release_date.desc');
+  expect(discoverRequests.at(-1)?.searchParams.get('releasePeriod')).toBe('120');
+
+  await gotoHydrated(page, '/?genre=35');
+  await expect(presets.getByRole('button', { name: 'Новинки' })).toHaveAttribute(
+    'aria-pressed',
+    'false'
+  );
+  await expect.poll(() => discoverRequests.at(-1)?.searchParams.get('genre')).toBe('35');
+  expect(discoverRequests.at(-1)?.searchParams.get('preset')).toBe('');
+  expect(discoverRequests.at(-1)?.searchParams.get('sortBy')).toBe('popularity.desc');
 });
 
 test('presets search the whole catalog, only "New releases" is recent', async ({ page }) => {

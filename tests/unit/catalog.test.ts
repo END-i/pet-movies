@@ -3,6 +3,7 @@ import {
   clearedFilters,
   countActiveFilters,
   defaultFilters,
+  linkBaseFilters,
   filtersFromParams,
   filtersToParams,
   cleanVotes,
@@ -16,14 +17,28 @@ import {
 const today = new Date('2026-10-28T12:00:00Z');
 
 describe('catalog filters', () => {
-  it('starts with popular titles of the last 120 days', () => {
+  it('starts with the "New releases" preset: newest of the last 120 days with some rating', () => {
     const filters = defaultFilters(today);
     expect(filters).toMatchObject({
+      preset: 'new',
       category: 'all',
-      sortBy: 'popularity.desc',
+      sortBy: 'primary_release_date.desc',
+      minRating: '5',
+      minVotes: '10',
       releasePeriod: '120',
       releaseDateLte: '2026-10-28',
       releaseDateGte: '2026-06-30'
+    });
+    expect(filters).toEqual(presetFilters(linkBaseFilters(today), 'new', today));
+  });
+
+  it('a shared link is read onto plain filters (popular, last 120 days), not the default preset', () => {
+    const filters = linkBaseFilters(today);
+    expect(filters).toMatchObject({
+      preset: '',
+      sortBy: 'popularity.desc',
+      minRating: '',
+      releasePeriod: '120'
     });
     expect(countActiveFilters(filters, 0)).toBe(1);
   });
@@ -90,7 +105,7 @@ describe('catalog URL', () => {
   it('ignores unknown values and recomputes dates for a named period', () => {
     const restored = filtersFromParams(
       new URLSearchParams('category=books&releasePeriod=30&preset=nope&ageRating=PG-13&page=-2'),
-      defaultFilters(today),
+      linkBaseFilters(today),
       today
     );
     expect(restored.filters.category).toBe('all');
@@ -160,13 +175,13 @@ describe('typed filters', () => {
   it('restores only known sorts and clean vote counts from a link', () => {
     const restored = filtersFromParams(
       new URLSearchParams('sortBy=title.asc&minVotes=350'),
-      defaultFilters(today),
+      linkBaseFilters(today),
       today
     );
     expect(restored.filters).toMatchObject({ sortBy: 'title.asc', minVotes: '350' });
     const bad = filtersFromParams(
       new URLSearchParams('sortBy=evil&minVotes=abc'),
-      defaultFilters(today),
+      linkBaseFilters(today),
       today
     );
     expect(bad.filters.sortBy).toBe('popularity.desc');

@@ -23,6 +23,7 @@
     countActiveFilters,
     countryOptions,
     defaultFilters,
+    linkBaseFilters,
     filtersFromParams,
     filtersToParams,
     findTheme,
@@ -203,10 +204,9 @@
 
   function readStateFromUrl() {
     if (typeof window === 'undefined') return 1;
-    const restored = filtersFromParams(
-      new URLSearchParams(window.location.search),
-      currentFilters()
-    );
+    const params = new URLSearchParams(window.location.search);
+    // A link carries the whole filter set — read it onto plain filters, not the default preset.
+    const restored = filtersFromParams(params, params.size ? linkBaseFilters() : currentFilters());
     setFilters(restored.filters);
     return restored.page;
   }

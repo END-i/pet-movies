@@ -165,8 +165,11 @@ export function releaseRange(
   return { gte: formatDate(start), lte: formatDate(today) };
 }
 
-/** First screen: popular titles of the last RECENT_RELEASE_DAYS days. */
-export function defaultFilters(today = new Date()): CatalogFilters {
+/**
+ * Popular titles of the last RECENT_RELEASE_DAYS days, no preset: the base a shared link is read onto
+ * (a link lists only non-empty values, so it must not inherit the "New releases" preset).
+ */
+export function linkBaseFilters(today = new Date()): CatalogFilters {
   const start = new Date(today);
   start.setDate(today.getDate() - RECENT_RELEASE_DAYS);
   return {
@@ -190,9 +193,19 @@ export function defaultFilters(today = new Date()): CatalogFilters {
   };
 }
 
+/** First screen: the "New releases" preset (owner's decision 12.11). */
+export function defaultFilters(today = new Date()): CatalogFilters {
+  return presetFilters(linkBaseFilters(today), 'new', today);
+}
+
 /** "Reset filters": everything cleared, whole catalog. */
 export function clearedFilters(today = new Date()): CatalogFilters {
-  return { ...defaultFilters(today), releasePeriod: 'all', releaseDateGte: '', releaseDateLte: '' };
+  return {
+    ...linkBaseFilters(today),
+    releasePeriod: 'all',
+    releaseDateGte: '',
+    releaseDateLte: ''
+  };
 }
 
 const PRESETS: Record<Exclude<FilterPreset, ''>, Partial<CatalogFilters>> = {
